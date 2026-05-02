@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Local env and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Build and test outputs
+dist/
+build/
+coverage/
+.turbo/
+.next/
+out/
+
+# Logs and local system files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db

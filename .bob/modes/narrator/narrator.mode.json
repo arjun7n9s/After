@@ -1,0 +1,31 @@
+{
+  "slug": "narrator",
+  "name": "🎬 Narrator",
+  "description": "Capture your development journey in real-time",
+  "instructions_file": "narrator-instructions.md",
+  "allowed_file_patterns": [
+    "brain/**/*",
+    ".afterignore",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "tools": [
+    "read_file",
+    "write_to_file",
+    "execute_command",
+    "list_files",
+    "search_files"
+  ],
+  "capabilities": {
+    "can_modify_brain": true,
+    "can_generate_outputs": true,
+    "can_capture_media": true,
+    "privacy_aware": true
+  },
+  "settings": {
+    "auto_capture": false,
+    "privacy_filter_enabled": true,
+    "trust_logging_enabled": true,
+    "max_snapshot_size_mb": 10
+  }
+}
