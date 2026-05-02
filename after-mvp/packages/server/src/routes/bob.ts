@@ -90,6 +90,46 @@ export const createBobRouter = (projectPath: string) => {
   });
 
   /**
+   * GET /api/bob/search
+   * Search Project Brain with local ranking and citations
+   */
+  router.get("/search", async (req, res) => {
+    try {
+      const query = (req.query.q as string | undefined)?.trim() ?? "";
+      const requestedLimit = Number(req.query.limit ?? 8);
+      const limit =
+        Number.isFinite(requestedLimit) && requestedLimit > 0
+          ? requestedLimit
+          : undefined;
+
+      if (!query) {
+        return res.json({
+          success: true,
+          message: "No search query provided",
+          data: { query, results: [] },
+        });
+      }
+
+      const results = await reader.search(query);
+
+      res.json({
+        success: true,
+        message: `Found ${results.length} results for "${query}"`,
+        data: {
+          query,
+          results: limit ? results.slice(0, limit) : results,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to search Project Brain",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
    * GET /api/bob/status
    * Search Project Brain or return project status
    */

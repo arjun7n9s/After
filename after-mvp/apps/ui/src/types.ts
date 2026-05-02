@@ -34,6 +34,13 @@ export type SearchResult = {
   file: string;
   preview: string;
   score: number;
+  line?: number;
+  matches?: string[];
+  citation?: {
+    path: string;
+    line?: number;
+    label: string;
+  };
 };
 
 export type ThemeMode = "light" | "dark";

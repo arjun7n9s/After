@@ -20,18 +20,15 @@ import {
   type Overview,
 } from "./schemas";
 import { brainFileNames, parseMarkdownBrainFile } from "./brain-files";
-
-export type SearchResult = {
-  file: string;
-  preview: string;
-  score: number;
-};
+import { ProjectBrainRetriever, type SearchResult } from "./retrieval";
 
 export class BrainReader {
   readonly brainPath: string;
+  private readonly retriever: ProjectBrainRetriever;
 
   constructor(projectPath: string) {
     this.brainPath = join(projectPath, "brain");
+    this.retriever = new ProjectBrainRetriever(projectPath);
   }
 
   async readOverview(): Promise<Overview> {
@@ -81,36 +78,7 @@ export class BrainReader {
   }
 
   async search(query: string): Promise<SearchResult[]> {
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) {
-      return [];
-    }
-
-    const files = Object.values(brainFileNames);
-    const results: Array<SearchResult | undefined> = await Promise.all(
-      files.map(async (file): Promise<SearchResult | undefined> => {
-        const content = await readFile(join(this.brainPath, file), "utf8");
-        const lowerContent = content.toLowerCase();
-        const index = lowerContent.indexOf(normalizedQuery);
-
-        if (index === -1) {
-          return undefined;
-        }
-
-        const start = Math.max(0, index - 80);
-        const end = Math.min(content.length, index + normalizedQuery.length + 80);
-
-        return {
-          file,
-          preview: content.slice(start, end).replace(/\s+/g, " ").trim(),
-          score: this.countOccurrences(lowerContent, normalizedQuery),
-        };
-      }),
-    );
-
-    return results
-      .filter((result): result is SearchResult => result !== undefined)
-      .sort((left, right) => right.score - left.score);
+    return this.retriever.search(query);
   }
 
   private async readMarkdown<T>(fileName: string): Promise<T> {
@@ -123,7 +91,4 @@ export class BrainReader {
     return JSON.parse(content) as T;
   }
 
-  private countOccurrences(content: string, query: string): number {
-    return content.split(query).length - 1;
-  }
 }

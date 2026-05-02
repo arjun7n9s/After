@@ -81,7 +81,7 @@ class ApiService {
 
     try {
       const params = new URLSearchParams({ q: query });
-      const response = await this.request(`/api/bob/status?${params.toString()}`);
+      const response = await this.request(`/api/bob/search?${params.toString()}`);
       if (!response.ok) throw new Error(`Search request failed: ${response.status}`);
 
       const payload = (await response.json()) as BobSearchResponse;
