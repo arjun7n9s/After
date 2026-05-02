@@ -1,31 +1,74 @@
-import { useState } from 'react'
+import { useCallback, useEffect } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Layout } from "@/components/Layout";
+import { ToastHost } from "@/components/ToastHost";
+import { apiService } from "@/services/api";
+import { webSocketService } from "@/services/websocket";
+import { Dashboard } from "@/screens/Dashboard";
+import { Timeline } from "@/screens/Timeline";
+import { useAppStore } from "@/stores/app-store";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const setProject = useAppStore((state) => state.setProject);
+  const setEvents = useAppStore((state) => state.setEvents);
+  const addEvent = useAppStore((state) => state.addEvent);
+  const setConnected = useAppStore((state) => state.setConnected);
+  const setLoading = useAppStore((state) => state.setLoading);
+  const setError = useAppStore((state) => state.setError);
+  const theme = useAppStore((state) => state.theme);
+
+  const refreshData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [project, events] = await Promise.all([
+        apiService.getProject(),
+        apiService.getEvents(),
+      ]);
+      setProject(project);
+      setEvents(events);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to load project data");
+    } finally {
+      setLoading(false);
+    }
+  }, [setError, setEvents, setLoading, setProject]);
+
+  useEffect(() => {
+    void refreshData();
+
+    const unsubscribe = webSocketService.on(addEvent);
+    webSocketService.connect();
+    const intervalId = window.setInterval(() => {
+      setConnected(webSocketService.isConnected());
+    }, 1000);
+
+    return () => {
+      unsubscribe();
+      window.clearInterval(intervalId);
+      webSocketService.disconnect();
+    };
+  }, [addEvent, refreshData, setConnected]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          After MVP
-        </h1>
-        <p className="text-gray-600 mb-8">
-          Local-first developer tool for capturing your development journey
-        </p>
-        <button
-          onClick={() => setCount((count) => count + 1)}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Count is {count}
-        </button>
-        <p className="mt-4 text-sm text-gray-500">
-          Phase 1: Foundation - In Progress
-        </p>
-      </div>
-    </div>
-  )
+    <ErrorBoundary>
+      <Routes>
+        <Route element={<Layout onRefresh={refreshData} />}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/timeline" element={<Timeline />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+      <ToastHost />
+    </ErrorBoundary>
+  );
 }
 
-export default App
-
-// Made with Bob
+export default App;

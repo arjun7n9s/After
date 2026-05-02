@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 
 /**
  * IgnoreParser
@@ -54,8 +54,7 @@ export class IgnoreParser {
    * Check if a file path should be ignored
    */
   isIgnored(filePath: string): boolean {
-    // Normalize path separators
-    const normalizedPath = filePath.replace(/\\/g, "/");
+    const normalizedPath = this.normalizePath(filePath);
 
     for (const pattern of this.patterns) {
       if (this.matchesPattern(normalizedPath, pattern)) {
@@ -123,7 +122,7 @@ export class IgnoreParser {
     while (i < pattern.length) {
       const char = pattern[i];
 
-      switch (char) {
+    switch (char) {
         case "*":
           if (pattern[i + 1] === "*") {
             // ** matches any number of directories
@@ -144,14 +143,16 @@ export class IgnoreParser {
 
         case "[":
           // Character class
-          const closeIndex = pattern.indexOf("]", i);
-          if (closeIndex !== -1) {
-            const charClass = pattern.slice(i, closeIndex + 1);
-            regex += charClass;
-            i = closeIndex + 1;
-          } else {
-            regex += "\\[";
-            i++;
+          {
+            const closeIndex = pattern.indexOf("]", i);
+            if (closeIndex !== -1) {
+              const charClass = pattern.slice(i, closeIndex + 1);
+              regex += charClass;
+              i = closeIndex + 1;
+            } else {
+              regex += "\\[";
+              i++;
+            }
           }
           break;
 
@@ -176,6 +177,14 @@ export class IgnoreParser {
     }
 
     return regex;
+  }
+
+  private normalizePath(filePath: string): string {
+    const relativePath = isAbsolute(filePath)
+      ? relative(this.projectPath, filePath)
+      : filePath;
+
+    return relativePath.replace(/\\/g, "/").replace(/^\.\//, "");
   }
 }
 

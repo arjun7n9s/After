@@ -2,6 +2,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import { Command } from "commander";
+import { createServer as createHttpServer, type Server } from "node:http";
+import { WebSocketServer } from "ws";
 
 import { initProject } from "./cli/init";
 import { createBobRouter } from "./routes/bob";
@@ -24,6 +26,36 @@ export const createServer = (projectPath?: string) => {
   }
 
   return app;
+};
+
+export const attachWebSocketServer = (server: Server): WebSocketServer => {
+  const websocketServer = new WebSocketServer({ noServer: true });
+
+  server.on("upgrade", (request, socket, head) => {
+    if (request.url !== "/ws") {
+      socket.destroy();
+      return;
+    }
+
+    websocketServer.handleUpgrade(request, socket, head, (websocket) => {
+      websocketServer.emit("connection", websocket, request);
+    });
+  });
+
+  websocketServer.on("connection", (websocket) => {
+    websocket.send(
+      JSON.stringify({
+        id: `ws-${Date.now()}`,
+        type: "milestone:reached",
+        title: "Live connection established",
+        summary: "Dashboard is receiving real-time updates from the After API server.",
+        timestamp: new Date().toISOString(),
+        source: "server:/ws",
+      }),
+    );
+  });
+
+  return websocketServer;
 };
 
 export const runCli = async (argv = process.argv): Promise<void> => {
@@ -53,10 +85,13 @@ export const runCli = async (argv = process.argv): Promise<void> => {
     .description("Start the After API server")
     .action((projectPath: string, options: { port: string }) => {
       const app = createServer(projectPath);
+      const server = createHttpServer(app);
       const port = Number(options.port);
+      attachWebSocketServer(server);
 
-      app.listen(port, () => {
+      server.listen(port, () => {
         console.log(`After API listening on http://localhost:${port}`);
+        console.log(`After WebSocket listening on ws://localhost:${port}/ws`);
         console.log(`Project: ${projectPath}`);
       });
     });

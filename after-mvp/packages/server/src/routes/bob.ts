@@ -137,6 +137,63 @@ export const createBobRouter = (projectPath: string) => {
   });
 
   /**
+   * GET /api/bob/events
+   * Return timeline events from Project Brain
+   */
+  router.get("/events", async (_req, res) => {
+    try {
+      const [changelog, journey] = await Promise.all([
+        reader.readChangelog(),
+        reader.readJourney(),
+      ]);
+
+      const changeEvents = changelog.map((entry) => ({
+        id: entry.id,
+        type:
+          entry.type === "added"
+            ? "file:added"
+            : entry.type === "removed"
+              ? "file:deleted"
+              : "file:changed",
+        title: entry.summary,
+        summary: entry.details || entry.summary,
+        timestamp: entry.date,
+        source: entry.sources[0]?.path,
+      }));
+
+      const journeyEvents = journey.map((entry) => ({
+        id: entry.id,
+        type:
+          entry.kind === "milestone"
+            ? "milestone:reached"
+            : entry.kind === "decision"
+              ? "decision:made"
+              : "git:commit",
+        title: entry.title,
+        summary: entry.narrative || entry.title,
+        timestamp: entry.timestamp,
+        source: entry.sources[0]?.path,
+      }));
+
+      res.json({
+        success: true,
+        data: {
+          events: [...changeEvents, ...journeyEvents].sort(
+            (left, right) =>
+              new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
+          ),
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to read events",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
    * POST /api/bob/readme
    * Generate README from Project Brain
    */

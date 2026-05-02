@@ -115,7 +115,6 @@ export class Redactor {
   redactSecrets(content: string): RedactionResult {
     const secrets = this.detectSecrets(content);
     let redacted = content;
-    let offset = 0;
 
     // Sort secrets by position (reverse order to maintain indices)
     const sortedSecrets = [...secrets].sort((a, b) => b.start - a.start);
