@@ -159,6 +159,14 @@
 
 ## Notes
 
+- Task 6 started with the Phase 2 local retrieval slice:
+  - Added a Project Brain retriever with weighted ranking across all brain files.
+  - Added matched terms, line numbers, previews, and citation labels to search results.
+  - Kept `BrainReader.search()` as the main search API while moving ranking logic into a dedicated retriever.
+  - Added `GET /api/bob/search` for ranked search results and kept the existing status search path compatible.
+  - Updated the UI API service to use the dedicated search endpoint.
+  - Added focused tests for ranking, result limits, missing files, and UI search API wiring.
+  - Verified with `npm audit`, `npm run build`, `npm run check-types`, `npm run lint`, and `npm run test`.
 - Review pass before continuing:
   - Workspace build, typecheck, tests, and dependency audit were checked.
   - `npm audit` reported `0 vulnerabilities`.

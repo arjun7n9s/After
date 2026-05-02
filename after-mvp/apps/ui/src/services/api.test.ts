@@ -61,22 +61,43 @@ describe("apiService", () => {
   });
 
   it("searches backend results and local fallback results", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: {
+            results: [
+              {
+                file: "brain.md",
+                preview: "privacy",
+                score: 2,
+                line: 4,
+                matches: ["privacy"],
+                citation: { path: "brain.md", line: 4, label: "brain.md:4" },
+              },
+            ],
+          },
+        }),
+      )
+      .mockRejectedValueOnce(new Error("offline"));
+
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValueOnce(
-          jsonResponse({
-            success: true,
-            data: { results: [{ file: "brain.md", preview: "privacy", score: 2 }] },
-          }),
-        )
-        .mockRejectedValueOnce(new Error("offline")),
+      fetchMock,
     );
 
     await expect(apiService.searchBrain("privacy")).resolves.toEqual([
-      { file: "brain.md", preview: "privacy", score: 2 },
+      {
+        file: "brain.md",
+        preview: "privacy",
+        score: 2,
+        line: 4,
+        matches: ["privacy"],
+        citation: { path: "brain.md", line: 4, label: "brain.md:4" },
+      },
     ]);
+    expect(fetchMock).toHaveBeenCalledWith("/api/bob/search?q=privacy", undefined);
     await expect(apiService.searchBrain("dashboard")).resolves.toHaveLength(1);
     await expect(apiService.searchBrain("")).resolves.toEqual([]);
   });
