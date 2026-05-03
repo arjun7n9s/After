@@ -1,20 +1,13 @@
-export type OutputKind =
-  | "readme"
-  | "changelog"
-  | "explanation"
-  | "journey"
-  | "abstract";
+// Export generators
+export { BaseGenerator } from "./generators/base-generator";
+export { ReadmeGenerator } from "./generators/readme-generator";
+export { ChangelogGenerator } from "./generators/changelog-generator";
+export { JourneyGenerator } from "./generators/journey-generator";
+export { AbstractGenerator } from "./generators/abstract-generator";
+export { OutputTemplateEngine, renderBulletList } from "./generators/template-engine";
 
-export type GeneratedOutput = {
-  kind: OutputKind;
-  fileName: string;
-  content: string;
-};
+// Export types
+export type { GeneratedOutput, GeneratorOptions } from "./generators/base-generator";
+export type { OutputTemplateName } from "./generators/template-engine";
 
-export const outputFileNames: Record<OutputKind, string> = {
-  readme: "README_generated.md",
-  changelog: "CHANGELOG_generated.md",
-  explanation: "project_explanation.md",
-  journey: "journey_report.md",
-  abstract: "abstract.html",
-};
+// Made with Bob

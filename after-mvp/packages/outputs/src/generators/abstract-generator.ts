@@ -1,0 +1,221 @@
+import { BaseGenerator, type GeneratedOutput } from "./base-generator";
+import type { Citation } from "@after/core";
+
+/**
+ * Abstract Generator
+ * 
+ * Generates an HTML abstract/summary from Project Brain.
+ */
+export class AbstractGenerator extends BaseGenerator {
+  getGeneratorName(): string {
+    return "Abstract Generator";
+  }
+
+  async generate(): Promise<GeneratedOutput> {
+    const citations: Citation[] = [];
+
+    // Read all relevant brain files
+    const overview = await this.brainReader.readOverview();
+    const intent = await this.brainReader.readIntent();
+    const architecture = await this.brainReader.readArchitecture();
+    const decisions = await this.brainReader.readDecisions();
+    const changelog = await this.brainReader.readChangelog();
+
+    // Add citations
+    citations.push(
+      {
+        id: "cite-1",
+        file: "overview.md",
+        preview: overview.summary,
+        label: "overview.md",
+      },
+      {
+        id: "cite-2",
+        file: "intent.md",
+        preview: intent.problem,
+        label: "intent.md",
+      },
+      {
+        id: "cite-3",
+        file: "architecture.md",
+        preview: architecture.overview,
+        label: "architecture.md",
+      }
+    );
+
+    // Build HTML abstract
+    const content = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${this.escapeHtml(overview.projectName)} - Abstract</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      color: #333;
+    }
+    h1 {
+      color: #2563eb;
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 0.5rem;
+    }
+    h2 {
+      color: #1e40af;
+      margin-top: 2rem;
+    }
+    .meta {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+    .section {
+      margin-bottom: 2rem;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .stat-card {
+      background: #f3f4f6;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      border-left: 4px solid #2563eb;
+    }
+    .stat-label {
+      font-size: 0.875rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #1e40af;
+    }
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    .tech-tag {
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.875rem;
+    }
+    .citations {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.875rem;
+      color: #666;
+    }
+    footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid #e5e7eb;
+      text-align: center;
+      color: #666;
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>${this.escapeHtml(overview.projectName)}</h1>
+  
+  <div class="meta">
+    Generated on ${new Date().toLocaleDateString()} by After
+  </div>
+
+  <div class="section">
+    <h2>Overview</h2>
+    <p>${this.escapeHtml(overview.summary)}</p>
+  </div>
+
+  <div class="section">
+    <h2>Problem Statement</h2>
+    <p>${this.escapeHtml(intent.problem)}</p>
+  </div>
+
+  <div class="section">
+    <h2>Goals</h2>
+    <ul>
+      ${intent.goals.map((goal) => `<li>${this.escapeHtml(goal)}</li>`).join("\n      ")}
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Architecture</h2>
+    <p>${this.escapeHtml(architecture.overview)}</p>
+  </div>
+
+  <div class="section">
+    <h2>Technology Stack</h2>
+    <div class="tech-stack">
+      ${architecture.components
+        .flatMap((c) => c.technologies)
+        .filter((tech, index, self) => self.indexOf(tech) === index)
+        .map((tech: string) => `<span class="tech-tag">${this.escapeHtml(tech)}</span>`)
+        .join("\n      ")}
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Project Statistics</h2>
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Decisions</div>
+        <div class="stat-value">${decisions.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Changes</div>
+        <div class="stat-value">${Object.keys(changelog).length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Components</div>
+        <div class="stat-value">${architecture.components.length}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="citations">
+    <h3>Sources</h3>
+    ${citations.map((c) => `<div>[${c.id}] ${c.label}: ${this.escapeHtml(c.preview)}</div>`).join("\n    ")}
+  </div>
+
+  <footer>
+    Generated by ${this.getGeneratorName()}<br>
+    Part of the After project
+  </footer>
+</body>
+</html>
+`;
+
+    return {
+      content,
+      citations,
+      metadata: this.createMetadata(),
+    };
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, String.fromCharCode(38) + "amp;")
+      .replace(/</g, String.fromCharCode(38) + "lt;")
+      .replace(/>/g, String.fromCharCode(38) + "gt;")
+      .replace(/"/g, String.fromCharCode(38) + "quot;")
+      .replace(/'/g, String.fromCharCode(38) + "#039;");
+  }
+}
+
+// Made with Bob
+

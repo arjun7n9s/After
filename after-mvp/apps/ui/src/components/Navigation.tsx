@@ -1,9 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { Activity, LayoutDashboard } from "lucide-react";
+import { Activity, LayoutDashboard, MessageSquare } from "lucide-react";
 
 const items = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/timeline", label: "Timeline", icon: Activity },
+  { to: "/chat", label: "Chat", icon: MessageSquare },
 ];
 
 export function Navigation() {

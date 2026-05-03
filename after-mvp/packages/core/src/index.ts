@@ -5,6 +5,14 @@ export * from "./memory/brain-writer";
 export * from "./memory/retrieval";
 export * from "./memory/schemas";
 
+// Intelligence exports
+export { BobShellAdapter } from "./intelligence/bob-shell-adapter";
+export { CitationBuilder } from "./intelligence/citation-builder";
+export { ChatService } from "./intelligence/chat-service";
+export type { BobContext, BobResponse, BobShellAdapterOptions } from "./intelligence/bob-shell-adapter";
+export type { Citation } from "./intelligence/citation-builder";
+export type { ChatMode, ChatRequest, ChatResponse } from "./intelligence/chat-service";
+
 // Privacy exports
 export { IgnoreParser } from "./privacy/ignore-parser";
 export { Redactor } from "./privacy/redactor";

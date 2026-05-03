@@ -43,6 +43,23 @@ export type SearchResult = {
   };
 };
 
+export type ChatMode = "local" | "bob";
+
+export type ChatCitation = {
+  id: string;
+  file: string;
+  line?: number;
+  preview: string;
+  label: string;
+  url?: string;
+};
+
+export type ChatResponse = {
+  content: string;
+  citations: ChatCitation[];
+  mode: ChatMode;
+};
+
 export type ThemeMode = "light" | "dark";
 
 export type ToastMessage = {

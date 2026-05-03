@@ -110,4 +110,47 @@ describe("apiService", () => {
 
     await expect(apiService.generateReadme()).resolves.toBe("# After");
   });
+
+  it("sends chat requests and reads chat status", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: {
+            content: "Local answer",
+            citations: [],
+            mode: "local",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: {
+            bobAvailable: true,
+            defaultMode: "bob",
+          },
+        }),
+      );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(apiService.chatBrain("What changed?")).resolves.toEqual({
+      content: "Local answer",
+      citations: [],
+      mode: "local",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/bob/chat",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ query: "What changed?", mode: "local", maxResults: 5 }),
+      }),
+    );
+    await expect(apiService.getChatStatus()).resolves.toEqual({
+      bobAvailable: true,
+      defaultMode: "bob",
+    });
+  });
 });

@@ -167,6 +167,21 @@
   - Updated the UI API service to use the dedicated search endpoint.
   - Added focused tests for ranking, result limits, missing files, and UI search API wiring.
   - Verified with `npm audit`, `npm run build`, `npm run check-types`, `npm run lint`, and `npm run test`.
+- Task 9-13 continuation:
+  - Completed the Task 9-13 scope directly in the repo and removed the temporary `TASK.md` checklist.
+  - Chose `pitch` as the default demo storyboard tone, with `technical` and `journey` available as API options.
+  - Made storyboards media-aware so captured screenshots can be referenced in the opening scene when Project Brain media exists.
+  - Kept the hackathon single-branch rule by continuing work directly on `main`.
+  - Reviewed generated output wording through tests and removed mojibake icon labels from generated markdown.
+  - Added a Handlebars-backed output template engine for README, changelog, and journey generation.
+  - Added output generator test coverage for README, changelog, journey, and abstract generation.
+  - Added citation builder tests for local brain source links and markdown references.
+  - Added Chat UI route, navigation item, API client methods, and screen tests with citation rendering.
+  - Added abstract and storyboard Bob API routes.
+  - Added a Project Brain storyboard generator in `@after/video`.
+  - Added Remotion-ready scene components for storyboard playback.
+  - Added Jest configs for `@after/outputs` and `@after/video` so their tests run.
+  - Verified Task 9-13 with `npm audit`, `npm run build`, `npm run check-types`, `npm run lint`, and `npm run test`.
 - Review pass before continuing:
   - Workspace build, typecheck, tests, and dependency audit were checked.
   - `npm audit` reported `0 vulnerabilities`.

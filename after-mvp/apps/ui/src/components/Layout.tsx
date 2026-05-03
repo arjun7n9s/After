@@ -12,6 +12,7 @@ type LayoutProps = {
 const routeTitles: Record<string, string> = {
   "/": "Dashboard",
   "/timeline": "Timeline",
+  "/chat": "Chat",
 };
 
 export function Layout({ onRefresh }: LayoutProps) {
