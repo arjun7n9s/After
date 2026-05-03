@@ -28,6 +28,9 @@ export function Layout({ onRefresh }: LayoutProps) {
 
   return (
     <div className="relative min-h-screen" style={{ color: "var(--ink)" }}>
+      {/* Vibrant Atmospheric Background */}
+      <div className="mesh-background" />
+      
       {/* Grain texture overlay */}
       <div
         className="pointer-events-none fixed inset-0 z-[1]"
@@ -42,8 +45,8 @@ export function Layout({ onRefresh }: LayoutProps) {
       <div className="relative z-10 flex min-h-screen">
         <Sidebar project={project} />
 
-        {/* Main content — offset by sidebar rail width */}
-        <div className="flex min-w-0 flex-1 flex-col lg:pl-16">
+        {/* Main content — offset by floating dock */}
+        <div className="flex min-w-0 flex-1 flex-col lg:pl-28">
           <Header
             title={title}
             isConnected={isConnected}

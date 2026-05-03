@@ -30,15 +30,15 @@ export function Header({ title, onRefresh }: HeaderProps) {
 
   return (
     <header
-      className="sticky top-0 z-30 flex min-h-14 items-center justify-between px-4 transition-all duration-300 sm:px-6"
+      className="sticky top-0 z-30 flex min-h-16 items-center justify-between px-4 transition-all duration-500 sm:px-6"
       style={{
         borderBottom: "1px solid transparent",
         ...(scrolled
           ? {
-              borderBottomColor: "var(--line)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              background: "rgba(246, 240, 233, 0.88)",
+              borderBottomColor: theme === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+              backdropFilter: "blur(24px) saturate(150%)",
+              WebkitBackdropFilter: "blur(24px) saturate(150%)",
+              background: theme === "dark" ? "rgba(28, 26, 25, 0.65)" : "rgba(252, 250, 247, 0.65)",
             }
           : {
               background: "transparent",
@@ -46,7 +46,7 @@ export function Header({ title, onRefresh }: HeaderProps) {
       }}
     >
       <div>
-        <h1 className="text-base font-semibold" style={{ color: "var(--ink)" }}>
+        <h1 className="text-[17px] font-display tracking-tight" style={{ color: "var(--ink)" }}>
           {title}
         </h1>
       </div>

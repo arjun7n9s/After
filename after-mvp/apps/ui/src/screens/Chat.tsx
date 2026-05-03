@@ -318,13 +318,13 @@ export function Chat() {
         }}
       >
         {!hasMessages ? (
-          <div className="flex flex-1 flex-col items-center justify-center px-5 py-20">
+          <div className="flex flex-1 flex-col items-center justify-center px-5 py-20 relative">
             <div
-              className="animate-fade-up text-center"
-              style={{ maxWidth: 600 }}
+              className="animate-fade-up text-center relative z-10"
+              style={{ maxWidth: 800 }}
             >
               <h1
-                className="text-4xl font-semibold tracking-tight sm:text-5xl"
+                className="text-5xl font-display tracking-tight sm:text-6xl"
                 style={{
                   color: "var(--ink)",
                   lineHeight: 1.1,

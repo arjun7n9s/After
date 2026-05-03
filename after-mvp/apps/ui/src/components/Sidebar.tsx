@@ -3,7 +3,6 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   Activity,
   Boxes,
-  ChevronRight,
   Files,
   LayoutDashboard,
   MessageSquare,
@@ -31,43 +30,34 @@ export function Sidebar({ project }: SidebarProps) {
 
   return (
     <>
-      {/* Backdrop overlay when expanded on desktop */}
-      {expanded && (
-        <div
-          className="fixed inset-0 z-30 hidden lg:block"
-          style={{ background: "rgba(43, 24, 10, 0.08)" }}
-          onClick={() => setExpanded(false)}
-        />
-      )}
-
       <aside
-        className="group/sidebar fixed left-0 top-0 z-40 hidden h-screen flex-col lg:flex"
+        className="group/sidebar fixed left-6 top-1/2 z-40 hidden -translate-y-1/2 flex-col rounded-[32px] lg:flex"
         style={{
-          width: expanded ? 240 : 64,
+          width: expanded ? 200 : 64,
           background: "var(--cream-0)",
-          borderRight: "1px solid var(--line)",
+          border: "1px solid var(--line)",
+          padding: "8px",
           transition:
-            "width 300ms var(--spring-snappy), box-shadow 300ms var(--spring-fade)",
-          boxShadow: expanded ? "8px 0 40px rgba(0, 0, 0, 0.08)" : "none",
-          transform: "translateZ(0)",
-          willChange: "width, box-shadow",
+            "width 300ms var(--spring-snappy), box-shadow 300ms var(--spring-fade), transform 300ms var(--spring-snappy)",
+          boxShadow: expanded 
+            ? "0 24px 48px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255,255,255,0.05)" 
+            : "0 8px 24px rgba(0, 0, 0, 0.06)",
+          transform: `translateZ(0) translateY(-50%) scale(${expanded ? 1.02 : 1})`,
+          willChange: "width, box-shadow, transform",
         }}
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
       >
         {/* Logo */}
         <div
-          className="flex items-center gap-3 px-3 py-4"
-          style={{ minHeight: 64 }}
+          className="mb-4 flex items-center gap-3 rounded-2xl p-1"
         >
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[20px]"
             style={{
               background:
-                "linear-gradient(140deg, #eba96e 0%, #d47840 55%, #b85e2a 100%)",
-              border: "1px solid #cc7538",
-              boxShadow:
-                "0 4px 16px rgba(180, 80, 30, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+                "linear-gradient(140deg, var(--accent-light) 0%, var(--accent) 55%, var(--accent-dark) 100%)",
+              boxShadow: "0 4px 12px rgba(180, 80, 30, 0.25), inset 0 1px 0 rgba(255,255,255,0.2)",
             }}
           >
             <Boxes className="h-5 w-5 text-white" aria-hidden="true" />
@@ -76,27 +66,21 @@ export function Sidebar({ project }: SidebarProps) {
             className="min-w-0 overflow-hidden"
             style={{
               opacity: expanded ? 1 : 0,
-              transition: "opacity 180ms ease",
+              transition: "opacity 180ms var(--spring-fade)",
             }}
           >
             <p
-              className="truncate text-sm font-bold"
+              className="truncate text-[15px] font-display"
               style={{ color: "var(--ink)" }}
             >
               {project.name}
-            </p>
-            <p
-              className="truncate text-[10px] font-semibold uppercase tracking-wider"
-              style={{ color: "var(--accent)" }}
-            >
-              {project.status}
             </p>
           </div>
         </div>
 
         {/* Navigation */}
         <nav
-          className="mt-2 flex flex-1 flex-col gap-1 px-2"
+          className="flex flex-1 flex-col gap-1"
           aria-label="Primary"
         >
           {navItems.map((item) => {
@@ -110,7 +94,7 @@ export function Sidebar({ project }: SidebarProps) {
                 key={item.to}
                 to={item.to}
                 end={item.to === "/"}
-                className="group/link relative flex items-center gap-3 rounded-xl px-3 py-2.5"
+                className="group/link relative flex items-center gap-3 rounded-[20px] px-3 py-2.5"
                 style={{
                   transition: "all 200ms cubic-bezier(0.22, 1, 0.36, 1)",
                   ...(isActive
@@ -119,7 +103,7 @@ export function Sidebar({ project }: SidebarProps) {
                           "linear-gradient(140deg, var(--accent-light), var(--accent-dark))",
                         color: "#fff7ef",
                         boxShadow:
-                          "0 4px 16px rgba(200, 125, 66, 0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
+                          "0 4px 12px rgba(200, 125, 66, 0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
                       }
                     : {
                         color: "var(--ink-soft)",
@@ -139,21 +123,15 @@ export function Sidebar({ project }: SidebarProps) {
                 >
                   {item.label}
                 </span>
-                {isActive && expanded && (
-                  <ChevronRight
-                    className="ml-auto h-3.5 w-3.5 shrink-0 opacity-60"
-                    aria-hidden="true"
-                  />
-                )}
 
                 {/* Tooltip when collapsed */}
                 {!expanded && (
                   <div
-                    className="pointer-events-none absolute left-full ml-3 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-semibold opacity-0 transition-opacity group-hover/link:opacity-100"
+                    className="pointer-events-none absolute left-full ml-4 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold opacity-0 transition-all duration-200 group-hover/link:opacity-100 group-hover/link:translate-x-1"
                     style={{
                       background: "var(--ink)",
                       color: "var(--cream-0)",
-                      boxShadow: "0 4px 12px rgba(43, 24, 10, 0.2)",
+                      boxShadow: "0 6px 16px rgba(43, 24, 10, 0.15)",
                     }}
                   >
                     {item.label}
@@ -165,12 +143,9 @@ export function Sidebar({ project }: SidebarProps) {
         </nav>
 
         {/* Bottom status */}
-        <div className="px-2 py-3">
+        <div className="mt-4 pb-2">
           <div
             className="flex items-center justify-center"
-            style={{
-              opacity: expanded ? 1 : undefined,
-            }}
           >
             {expanded ? (
               <StatusIndicator isConnected={isConnected} />
@@ -184,11 +159,11 @@ export function Sidebar({ project }: SidebarProps) {
                     <>
                       <span
                         className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50"
-                        style={{ background: "#1d6a35" }}
+                        style={{ background: "var(--success)" }}
                       />
                       <span
                         className="relative inline-flex h-2 w-2 rounded-full"
-                        style={{ background: "#1d6a35" }}
+                        style={{ background: "var(--success)" }}
                       />
                     </>
                   ) : (

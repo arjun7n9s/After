@@ -165,8 +165,8 @@ export function Dashboard() {
     );
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <div className="grid gap-6 lg:grid-cols-4">
+    <div className="mx-auto max-w-7xl relative">
+      <div className="relative z-10 grid gap-6 lg:grid-cols-4">
         <SpotlightCard
           className="p-8 lg:col-span-3"
           style={{ borderRadius: 24 }}
@@ -193,8 +193,15 @@ export function Dashboard() {
             </p>
 
             <h2
-              className="mt-4 text-4xl font-semibold tracking-tight"
-              style={{ color: "var(--ink)", lineHeight: 1.1 }}
+              className="mt-4 text-5xl font-display"
+              style={{ 
+                color: "var(--ink)", 
+                lineHeight: 1.1,
+                background: "linear-gradient(to right, var(--ink) 30%, var(--accent) 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
             >
               {project.name}
             </h2>
@@ -375,7 +382,7 @@ export function Dashboard() {
         </SpotlightCard>
 
         <SpotlightCard
-          className="animate-fade-up flex flex-col gap-3 p-6"
+          className="animate-fade-up flex flex-col space-y-4 p-6"
           style={{ borderRadius: 22, animationDelay: "100ms" }}
         >
           <p
