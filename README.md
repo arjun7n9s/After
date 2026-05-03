@@ -129,9 +129,8 @@ Fill in the IBM credentials in `.env`, then restart the server. The current envi
 
 For setup details, see:
 
-- [IBM Pro setup guide](docs/setup/ibm-pro-setup.md)
-- [IBM Pro quickstart](docs/setup/ibm-pro-quickstart.md)
 - [Manual env setup](after-mvp/MANUAL_ENV_SETUP.md)
+- [Environment template](after-mvp/.env.example)
 
 ## Suggested 5-minute demo
 
@@ -193,13 +192,6 @@ IBM-Bob/
 |   |-- packages/ui/             shared UI primitives
 |   |-- .env.example             optional IBM Pro configuration template
 |   `-- README.md                workspace quick reference
-|-- docs/
-|   |-- README.md                documentation index and submission guide
-|   |-- architecture/           technical architecture docs
-|   |-- setup/                  IBM and environment setup docs
-|   |-- demo/                   demo script, package, checklist, presentation notes
-|   |-- planning/               plans, verification, feasibility notes
-|   `-- archive/                working notes and progress history
 |-- LICENSE
 `-- README.md                    repository overview
 ```
@@ -227,15 +219,9 @@ IBM-Bob/
 
 ## Documentation map
 
-- [docs/README.md](docs/README.md): documentation index and submission orientation
-- [docs/architecture/system-architecture.md](docs/architecture/system-architecture.md): end-to-end system design
-- [docs/planning/implementation-plan.md](docs/planning/implementation-plan.md): deeper technical planning
-- [docs/planning/phased-plan.md](docs/planning/phased-plan.md): phased scope and delivery
-- [docs/demo/demo-package.md](docs/demo/demo-package.md): demo package and walkthrough
-- [docs/demo/demo-guide.md](docs/demo/demo-guide.md): demo preparation notes
-- [docs/demo/final-checklist.md](docs/demo/final-checklist.md): final review checklist
-- [docs/setup/ibm-api-keys.md](docs/setup/ibm-api-keys.md): IBM credential breakdown
-- [after-mvp/bob_sessions/README.md](after-mvp/bob_sessions/README.md): sample project brain context
+- [after-mvp/README.md](after-mvp/README.md): workspace overview
+- [after-mvp/MANUAL_ENV_SETUP.md](after-mvp/MANUAL_ENV_SETUP.md): IBM environment setup
+- [after-mvp/bob_sessions](after-mvp/bob_sessions): sample Bob session captures and screenshots
 
 ## Build and validation
 

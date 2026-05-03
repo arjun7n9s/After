@@ -14,7 +14,7 @@ from that record.
 - `packages/ui` - Shared React component primitives published as `@after/shared-ui`.
 - `packages/typescript-config` and `packages/eslint-config` - Shared tooling configuration.
 
-For submission-facing documentation, start at the repository root `README.md` and `../docs/README.md`.
+For submission-facing documentation, start at the repository root `README.md`.
 
 ## Commands
 

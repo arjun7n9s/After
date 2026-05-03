@@ -179,6 +179,6 @@ curl -X POST http://localhost:3000/api/bob/ibm/chat \
 
 ## Need Help?
 
-- See `../docs/setup/ibm-api-keys.md` for detailed key setup
-- See `../docs/setup/ibm-pro-quickstart.md` for quick setup guide
-- See `../docs/setup/ibm-pro-setup.md` for comprehensive guide
+- See `.env.example` for the current environment variable reference
+- See `README.md` for the workspace overview
+- See `../README.md` for the repository overview

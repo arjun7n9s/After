@@ -37,7 +37,7 @@ export const fallbackEvents: CaptureEvent[] = [
     title: "Audit and verification cleaned up",
     summary: "Dependency audit, build, typecheck, lint, and tests are green after the review pass.",
     timestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-    source: "docs/archive/tej-change-notes.md",
+    source: "README.md",
   },
   {
     id: "ui-started",
