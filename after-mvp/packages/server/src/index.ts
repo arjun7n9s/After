@@ -2,8 +2,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import { Command } from "commander";
+import { existsSync } from "node:fs";
+import { access } from "node:fs/promises";
 import { createServer as createHttpServer, type Server } from "node:http";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { WebSocketServer } from "ws";
 
 import { initProject } from "./cli/init";
@@ -11,7 +13,11 @@ import { createBobRouter } from "./routes/bob";
 
 dotenv.config();
 
-export const createServer = (projectPath?: string) => {
+type CreateServerOptions = {
+  serveDashboard?: boolean;
+};
+
+export const createServer = (projectPath?: string, options: CreateServerOptions = {}) => {
   const app = express();
 
   app.use(cors());
@@ -27,7 +33,80 @@ export const createServer = (projectPath?: string) => {
     app.use("/api/bob", createBobRouter(projectPath));
   }
 
+  if (options.serveDashboard) {
+    attachDashboard(app);
+  }
+
   return app;
+};
+
+const attachDashboard = (app: express.Express): void => {
+  const dashboardPath = findDashboardBuildPath();
+
+  if (!dashboardPath) {
+    app.get("/", (_request, response) => {
+      response.status(503).send([
+        "<!doctype html>",
+        "<html><body style=\"font-family: system-ui; max-width: 720px; margin: 48px auto; line-height: 1.5;\">",
+        "<h1>After dashboard is not built yet</h1>",
+        "<p>Run <code>npm run build</code> inside the After workspace, then run <code>after launch .</code> again.</p>",
+        "</body></html>",
+      ].join(""));
+    });
+    return;
+  }
+
+  app.use(express.static(dashboardPath));
+  app.get("*", (request, response, next) => {
+    if (request.path.startsWith("/api/") || request.path === "/ws") {
+      next();
+      return;
+    }
+
+    response.sendFile(join(dashboardPath, "index.html"));
+  });
+};
+
+const findDashboardBuildPath = (): string | null => {
+  const candidates = [
+    process.env.AFTER_DASHBOARD_DIST,
+    resolve(process.cwd(), "apps", "ui", "dist"),
+    resolve(__dirname, "..", "..", "..", "apps", "ui", "dist"),
+  ].filter((value): value is string => Boolean(value));
+
+  return candidates.find((candidate) => existsSync(join(candidate, "index.html"))) ?? null;
+};
+
+const hasProjectBrain = async (projectPath: string): Promise<boolean> => {
+  try {
+    await access(join(projectPath, "brain", "overview.md"));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const listen = (
+  projectPath: string,
+  options: { port: string; serveDashboard?: boolean; initialize?: boolean },
+): void => {
+  const resolvedProjectPath = resolve(projectPath);
+  const app = createServer(resolvedProjectPath, {
+    serveDashboard: options.serveDashboard,
+  });
+  const server = createHttpServer(app);
+  const port = Number(options.port);
+  attachWebSocketServer(server);
+
+  server.listen(port, () => {
+    const baseUrl = `http://localhost:${port}`;
+    console.log(`After is running at ${baseUrl}`);
+    console.log(`API health: ${baseUrl}/api/health`);
+    console.log(`Project: ${resolvedProjectPath}`);
+    if (options.initialize) {
+      console.log("Project Brain: ready");
+    }
+  });
 };
 
 export const attachWebSocketServer = (server: Server): WebSocketServer => {
@@ -92,17 +171,29 @@ export const runCli = async (argv = process.argv): Promise<void> => {
     .option("-p, --port <port>", "port", process.env.PORT ?? "3000")
     .description("Start the After API server")
     .action((projectPath: string, options: { port: string }) => {
-      const resolvedProjectPath = resolve(projectPath);
-      const app = createServer(resolvedProjectPath);
-      const server = createHttpServer(app);
-      const port = Number(options.port);
-      attachWebSocketServer(server);
+      listen(projectPath, { port: options.port });
+    });
 
-      server.listen(port, () => {
-        console.log(`After API listening on http://localhost:${port}`);
-        console.log(`After WebSocket listening on ws://localhost:${port}/ws`);
-        console.log("After dashboard: http://localhost:5173");
-        console.log(`Project: ${resolvedProjectPath}`);
+  program
+    .command("launch")
+    .alias("up")
+    .argument("[projectPath]", "project path", ".")
+    .option("-n, --name <projectName>", "project display name")
+    .option("-p, --port <port>", "port", process.env.PORT ?? "3000")
+    .description("Initialize the current repo if needed and launch After with API and dashboard")
+    .action(async (projectPath: string, options: { name?: string; port: string }) => {
+      const resolvedProjectPath = resolve(projectPath);
+
+      if (!(await hasProjectBrain(resolvedProjectPath))) {
+        await initProject(resolvedProjectPath, {
+          projectName: options.name ?? basename(resolvedProjectPath),
+        });
+      }
+
+      listen(resolvedProjectPath, {
+        port: options.port,
+        serveDashboard: true,
+        initialize: true,
       });
     });
 
