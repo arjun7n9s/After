@@ -4,53 +4,71 @@
 
 /* ── Design Tokens ──────────────────────────────────────────────── */
 :root {
-  --cream-0: #fcf6ef;
-  --cream-1: #f6f0e9;
-  --cream-2: #efe7dd;
-  --cream-3: #e6dbcf;
-  --line: #e6dbcf;
-  --ink: #2b180a;
-  --ink-soft: #6f5a4a;
-  --ink-muted: #9a806e;
-  --accent: #c87d42;
-  --accent-light: #df8a4f;
-  --accent-dark: #b45e2a;
-  --accent-glow: rgba(200, 125, 66, 0.18);
-  --success: #1d6a35;
-  --success-bg: #ebf9ef;
-  --error: #a23b2f;
-  --error-bg: #fdeceb;
-  --ease: cubic-bezier(0.44, 0, 0.56, 1);
+  /* Perceptual Color Mathematics (OKLCH) */
+  --cream-0: oklch(0.99 0.005 75);
+  --cream-1: oklch(0.975 0.005 75);
+  --cream-2: oklch(0.95 0.01 75);
+  --cream-3: oklch(0.92 0.015 75);
+  --line: oklch(0.92 0.01 75);
+  --ink: oklch(0.15 0.01 250);
+  --ink-soft: oklch(0.4 0.01 250);
+  --ink-muted: oklch(0.55 0.01 250);
+  --accent: oklch(0.55 0.18 20);
+  --accent-light: oklch(0.65 0.18 20);
+  --accent-dark: oklch(0.45 0.18 20);
+  --accent-glow: oklch(0.55 0.18 20 / 0.15);
+  --success: oklch(0.55 0.14 140);
+  --success-bg: oklch(0.96 0.05 140);
+  --error: oklch(0.55 0.18 25);
+  --error-bg: oklch(0.96 0.05 25);
 
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Algorithmic Physics */
+  --ease: cubic-bezier(0.44, 0, 0.56, 1);
+  --spring-snappy: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --spring-fade: cubic-bezier(0.4, 0, 1, 1);
+
+  font-family:
+    "Inter",
+    "Outfit",
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    sans-serif;
   color: var(--ink);
-  background: linear-gradient(180deg, var(--cream-1) 0%, var(--cream-0) 100%);
+  background: var(--cream-0);
   font-synthesis: none;
+
+  /* Typography Anti-aliasing and Font Features */
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv02", "ss01";
 }
 
 .dark {
-  --cream-0: #0f0c09;
-  --cream-1: #151210;
-  --cream-2: #1c1816;
-  --cream-3: #2a2420;
-  --line: #2a2420;
-  --ink: #f0e6da;
-  --ink-soft: #b0a090;
-  --ink-muted: #7a6e62;
-  --accent: #df8a4f;
-  --accent-light: #e89f6a;
-  --accent-dark: #c87d42;
-  --accent-glow: rgba(223, 138, 79, 0.12);
-  --success: #74c58d;
-  --success-bg: rgba(29, 106, 53, 0.12);
-  --error: #e6a09b;
-  --error-bg: rgba(162, 59, 47, 0.12);
+  --cream-0: oklch(0.18 0.005 250);
+  --cream-1: oklch(0.22 0.005 250);
+  --cream-2: oklch(0.26 0.01 250);
+  --cream-3: oklch(0.3 0.01 250);
+  --line: oklch(0.28 0.01 250);
+  --ink: oklch(0.98 0.005 250);
+  --ink-soft: oklch(0.8 0.01 250);
+  --ink-muted: oklch(0.65 0.01 250);
+  --accent: oklch(0.65 0.18 20);
+  --accent-light: oklch(0.75 0.18 20);
+  --accent-dark: oklch(0.55 0.18 20);
+  --accent-glow: oklch(0.65 0.18 20 / 0.15);
+  --success: oklch(0.75 0.14 140);
+  --success-bg: oklch(0.25 0.05 140);
+  --error: oklch(0.75 0.18 25);
+  --error-bg: oklch(0.25 0.05 25);
 
   color: var(--ink);
-  background: linear-gradient(180deg, var(--cream-1) 0%, var(--cream-0) 100%);
+  background: var(--cream-0);
 }
 
 * {
@@ -94,17 +112,27 @@ textarea {
 
 /* ── Utility Classes ────────────────────────────────────────────── */
 @layer components {
-  /* Glass card */
+  /* Hardware Accelerated Glass Card with Sub-pixel Optics */
   .glass-card {
-    background: rgba(255, 252, 247, 0.94);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    box-shadow: 0 2px 8px rgba(50, 25, 10, 0.06);
+    background: oklch(0.99 0.005 75 / 0.94);
+    /* Sub-pixel inner border for crisp machined edge */
+    box-shadow:
+      inset 0 0 0 0.5px rgba(255, 255, 255, 0.4),
+      0 4px 12px rgba(43, 24, 10, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 16px;
+
+    /* Hardware acceleration isolation */
+    transform: translateZ(0);
+    will-change: transform;
   }
 
   .dark .glass-card {
-    background: rgba(21, 18, 16, 0.92);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    background: oklch(0.18 0.01 50 / 0.85);
+    box-shadow:
+      inset 0 0 0 0.5px rgba(255, 255, 255, 0.08),
+      0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   /* Glass header on scroll */
@@ -169,7 +197,12 @@ textarea {
     font-size: 13px;
     font-weight: 700;
     border: 1px solid var(--accent-dark);
-    background: linear-gradient(140deg, var(--accent-light) 0%, var(--accent) 55%, var(--accent-dark) 100%);
+    background: linear-gradient(
+      140deg,
+      var(--accent-light) 0%,
+      var(--accent) 55%,
+      var(--accent-dark) 100%
+    );
     color: #fff7ef;
     box-shadow: 0 4px 14px rgba(101, 52, 21, 0.22);
     transition:
@@ -216,41 +249,22 @@ textarea {
     box-shadow: 0 0 0 3px var(--accent-glow);
   }
 
-  /* Ambient glow behind input */
-  .ambient-glow {
-    pointer-events: none;
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 900px;
-    height: 260px;
-    border-radius: 50%;
-    background: radial-gradient(
-      ellipse at top,
-      rgba(230, 133, 79, 0.18) 0%,
-      rgba(245, 185, 110, 0.10) 42%,
-      transparent 68%
-    );
-    filter: blur(36px);
-    z-index: 0;
-  }
-
-  .dark .ambient-glow {
-    background: radial-gradient(
-      ellipse at top,
-      rgba(223, 138, 79, 0.10) 0%,
-      rgba(200, 125, 66, 0.05) 42%,
-      transparent 68%
-    );
-  }
-
   /* Stagger animation delays */
-  .stagger-1 { animation-delay: 70ms; }
-  .stagger-2 { animation-delay: 140ms; }
-  .stagger-3 { animation-delay: 210ms; }
-  .stagger-4 { animation-delay: 280ms; }
-  .stagger-5 { animation-delay: 350ms; }
+  .stagger-1 {
+    animation-delay: 70ms;
+  }
+  .stagger-2 {
+    animation-delay: 140ms;
+  }
+  .stagger-3 {
+    animation-delay: 210ms;
+  }
+  .stagger-4 {
+    animation-delay: 280ms;
+  }
+  .stagger-5 {
+    animation-delay: 350ms;
+  }
 
   /* Shimmer skeleton */
   .skeleton-shimmer {
@@ -289,8 +303,12 @@ textarea {
 
 /* ── Keyframes ──────────────────────────────────────────────────── */
 @keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes fade-up-soft {
@@ -305,36 +323,84 @@ textarea {
 }
 
 @keyframes fade-in-soft {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes dreaming-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes ambient-drift-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(4%, -7%) scale(1.08); }
-  50% { transform: translate(-3%, 4%) scale(0.94); }
-  75% { transform: translate(6%, 2%) scale(1.04); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(4%, -7%) scale(1.08);
+  }
+  50% {
+    transform: translate(-3%, 4%) scale(0.94);
+  }
+  75% {
+    transform: translate(6%, 2%) scale(1.04);
+  }
 }
 
 @keyframes ambient-drift-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  30% { transform: translate(-5%, 3%) scale(0.96); }
-  60% { transform: translate(3%, -5%) scale(1.06); }
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  30% {
+    transform: translate(-5%, 3%) scale(0.96);
+  }
+  60% {
+    transform: translate(3%, -5%) scale(1.06);
+  }
+}
+
+@keyframes data-flow {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
 }
 
 /* ── Perspective tilt on hover ──────────────────────────────────── */
 @layer components {
   .tilt-card {
-    transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 400ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition:
+      transform 300ms var(--spring-fade),
+      box-shadow 300ms var(--spring-fade);
     transform-style: preserve-3d;
     perspective: 800px;
+    will-change: transform, box-shadow;
   }
   .tilt-card:hover {
-    transform: perspective(800px) rotateX(-1deg) rotateY(1.5deg) translateY(-4px);
-    box-shadow: 0 20px 40px rgba(43, 24, 10, 0.08), 0 8px 16px rgba(43, 24, 10, 0.04);
+    transition:
+      transform 150ms var(--spring-snappy),
+      box-shadow 150ms var(--spring-snappy);
+    transform: perspective(800px) rotateX(-1deg) rotateY(1.5deg)
+      translateY(-4px);
+    box-shadow:
+      0 20px 40px rgba(43, 24, 10, 0.08),
+      0 8px 16px rgba(43, 24, 10, 0.04);
   }
 }

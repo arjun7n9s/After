@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Activity, Boxes, ChevronRight, Files, LayoutDashboard, MessageSquare } from "lucide-react";
+import {
+  Activity,
+  Boxes,
+  ChevronRight,
+  Files,
+  LayoutDashboard,
+  MessageSquare,
+} from "lucide-react";
 
 import { StatusIndicator } from "@/components/StatusIndicator";
 import { useAppStore } from "@/stores/app-store";
@@ -36,25 +43,31 @@ export function Sidebar({ project }: SidebarProps) {
       <aside
         className="group/sidebar fixed left-0 top-0 z-40 hidden h-screen flex-col lg:flex"
         style={{
-          width: expanded ? 220 : 64,
-          background: "rgba(252, 246, 239, 0.97)",
+          width: expanded ? 240 : 64,
+          background: "var(--cream-0)",
           borderRight: "1px solid var(--line)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          transition: "width 280ms cubic-bezier(0.22, 1, 0.36, 1)",
-          boxShadow: expanded ? "8px 0 40px rgba(43, 24, 10, 0.08)" : "none",
+          transition:
+            "width 300ms var(--spring-snappy), box-shadow 300ms var(--spring-fade)",
+          boxShadow: expanded ? "8px 0 40px rgba(0, 0, 0, 0.08)" : "none",
+          transform: "translateZ(0)",
+          willChange: "width, box-shadow",
         }}
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-3 py-4" style={{ minHeight: 64 }}>
+        <div
+          className="flex items-center gap-3 px-3 py-4"
+          style={{ minHeight: 64 }}
+        >
           <div
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
             style={{
-              background: "linear-gradient(140deg, #eba96e 0%, #d47840 55%, #b85e2a 100%)",
+              background:
+                "linear-gradient(140deg, #eba96e 0%, #d47840 55%, #b85e2a 100%)",
               border: "1px solid #cc7538",
-              boxShadow: "0 4px 16px rgba(180, 80, 30, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+              boxShadow:
+                "0 4px 16px rgba(180, 80, 30, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
             }}
           >
             <Boxes className="h-5 w-5 text-white" aria-hidden="true" />
@@ -82,10 +95,16 @@ export function Sidebar({ project }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-2 flex flex-1 flex-col gap-1 px-2" aria-label="Primary">
+        <nav
+          className="mt-2 flex flex-1 flex-col gap-1 px-2"
+          aria-label="Primary"
+        >
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
+            const isActive =
+              item.to === "/"
+                ? location.pathname === "/"
+                : location.pathname.startsWith(item.to);
             return (
               <NavLink
                 key={item.to}
@@ -96,21 +115,26 @@ export function Sidebar({ project }: SidebarProps) {
                   transition: "all 200ms cubic-bezier(0.22, 1, 0.36, 1)",
                   ...(isActive
                     ? {
-                        background: "linear-gradient(140deg, var(--accent-light), var(--accent-dark))",
+                        background:
+                          "linear-gradient(140deg, var(--accent-light), var(--accent-dark))",
                         color: "#fff7ef",
-                        boxShadow: "0 4px 16px rgba(200, 125, 66, 0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
+                        boxShadow:
+                          "0 4px 16px rgba(200, 125, 66, 0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
                       }
                     : {
                         color: "var(--ink-soft)",
                       }),
                 }}
               >
-                <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                <Icon
+                  className="h-[18px] w-[18px] shrink-0"
+                  aria-hidden="true"
+                />
                 <span
                   className="truncate text-[13px] font-semibold"
                   style={{
                     opacity: expanded ? 1 : 0,
-                    transition: "opacity 180ms ease",
+                    transition: "opacity 150ms var(--spring-fade)",
                   }}
                 >
                   {item.label}
@@ -151,7 +175,10 @@ export function Sidebar({ project }: SidebarProps) {
             {expanded ? (
               <StatusIndicator isConnected={isConnected} />
             ) : (
-              <div className="flex items-center justify-center" style={{ width: 40, height: 32 }}>
+              <div
+                className="flex items-center justify-center"
+                style={{ width: 40, height: 32 }}
+              >
                 <span className="relative flex h-2 w-2">
                   {isConnected ? (
                     <>
@@ -159,10 +186,16 @@ export function Sidebar({ project }: SidebarProps) {
                         className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-50"
                         style={{ background: "#1d6a35" }}
                       />
-                      <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#1d6a35" }} />
+                      <span
+                        className="relative inline-flex h-2 w-2 rounded-full"
+                        style={{ background: "#1d6a35" }}
+                      />
                     </>
                   ) : (
-                    <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "var(--ink-muted)" }} />
+                    <span
+                      className="relative inline-flex h-2 w-2 rounded-full"
+                      style={{ background: "var(--ink-muted)" }}
+                    />
                   )}
                 </span>
               </div>
