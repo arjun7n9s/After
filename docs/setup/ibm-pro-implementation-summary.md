@@ -61,7 +61,7 @@
   - Links to IBM Cloud documentation
 
 #### Comprehensive Setup Guide
-- **File**: `IBM_PRO_SETUP_GUIDE.md` (396 lines)
+- **File**: `ibm-pro-setup.md` (396 lines)
 - **Sections**:
   - Overview and prerequisites
   - Step-by-step setup for each service
@@ -73,7 +73,7 @@
   - Setup checklist
 
 #### Quick Start Guide
-- **File**: `QUICK_START_IBM_PRO.md` (128 lines)
+- **File**: `ibm-pro-quickstart.md` (128 lines)
 - **Purpose**: 5-minute setup for developers
 - **Contents**:
   - Condensed setup steps
@@ -110,8 +110,8 @@
 ### Step 1: Get IBM Cloud Credentials (5-10 minutes)
 
 Follow either guide:
-- **Quick**: `QUICK_START_IBM_PRO.md` (5 minutes)
-- **Detailed**: `IBM_PRO_SETUP_GUIDE.md` (full documentation)
+- **Quick**: `ibm-pro-quickstart.md` (5 minutes)
+- **Detailed**: `ibm-pro-setup.md` (full documentation)
 
 You'll need:
 1. IBM Cloud account (free tier available)
@@ -315,16 +315,16 @@ Response:
 ## 📚 Documentation Files
 
 1. **`after-mvp/.env.example`** - Environment template with all variables
-2. **`IBM_PRO_SETUP_GUIDE.md`** - Comprehensive setup guide (396 lines)
-3. **`QUICK_START_IBM_PRO.md`** - 5-minute quick start (128 lines)
-4. **`IBM_PRO_SUMMARY.md`** - This file (implementation summary)
-5. **`VERIFICATION_AND_TASK_SPLIT.md`** - Overall project status
+2. **`ibm-pro-setup.md`** - Comprehensive setup guide (396 lines)
+3. **`ibm-pro-quickstart.md`** - 5-minute quick start (128 lines)
+4. **`ibm-pro-implementation-summary.md`** - This file (implementation summary)
+5. **`../planning/verification-summary.md`** - Overall project status
 
 ## 🎉 Ready to Use!
 
 Everything is implemented and documented. You just need to:
 
-1. Follow `QUICK_START_IBM_PRO.md` to get your API keys
+1. Follow `ibm-pro-quickstart.md` to get your API keys
 2. Add them to `after-mvp/.env`
 3. Start the server and test
 

@@ -4,7 +4,7 @@
 
 ### All Changes Verified Successfully
 
-I have thoroughly reviewed all changes documented in `changes_by_tej.md` and verified them against the current codebase:
+I have thoroughly reviewed all changes documented in `../archive/tej-change-notes.md` and verified them against the current codebase:
 
 #### ✅ Scaffold and Tooling (Task 1)
 - Package namespace correctly renamed to `@after/*`

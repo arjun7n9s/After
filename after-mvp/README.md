@@ -11,8 +11,10 @@ from that record.
 - `packages/server` - Express API and CLI entry points.
 - `packages/outputs` - Output generator package.
 - `packages/video` - Video pipeline package.
-- `packages/shared-ui` - Shared React component primitives.
+- `packages/ui` - Shared React component primitives published as `@after/shared-ui`.
 - `packages/typescript-config` and `packages/eslint-config` - Shared tooling configuration.
+
+For submission-facing documentation, start at the repository root `README.md` and `../docs/README.md`.
 
 ## Commands
 

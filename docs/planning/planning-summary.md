@@ -89,7 +89,7 @@
 
 ## What Was Changed
 
-### ARCHITECTURE.md Changes
+### system-architecture.md changes
 
 1. **Simplified High-Level Architecture**
    - Removed complex Mermaid diagrams that had rendering issues
@@ -126,7 +126,7 @@
    - Used ASCII art for clarity
    - Focused on essential flows only
 
-### IMPLEMENTATION_PLAN.md Changes
+### implementation-plan.md changes
 
 1. **Restructured Repository Layout**
    - Kept monorepo structure but simplified

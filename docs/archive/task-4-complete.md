@@ -172,7 +172,7 @@ await manager.stop();
 7. `after-mvp/packages/core/src/capture/git-scanner.ts` (233 lines)
 8. `after-mvp/packages/core/src/capture/capture-manager.ts` (239 lines)
 9. `after-mvp/packages/core/src/index.ts` (updated with exports)
-10. `TASK_4_COMPLETE.md` (this file)
+10. `task-4-complete.md` (this file)
 
 **Total Lines of Code:** ~2,200 lines
 

@@ -85,7 +85,8 @@ type BobVideoStatusResponse = {
 type BobFilesResponse = {
   success: boolean;
   data?: {
-    root?: string;
+    outputRoot?: string;
+    captureRoot?: string;
     files?: GeneratedFile[];
   };
 };
@@ -344,7 +345,8 @@ class ApiService {
       if (!response.ok) throw new Error(`Generated files request failed: ${response.status}`);
       const payload = (await response.json()) as BobFilesResponse;
       return {
-        root: payload.data?.root,
+        outputRoot: payload.data?.outputRoot,
+        captureRoot: payload.data?.captureRoot,
         files: payload.success ? payload.data?.files ?? [] : [],
       };
     } catch {

@@ -126,12 +126,14 @@ export type GeneratedFile = {
   extension: string;
   sizeBytes: number;
   updatedAt: string;
+  collection: "generated" | "captured";
   kind: GeneratedFileKind;
   previewable: boolean;
 };
 
 export type GeneratedFilesListing = {
-  root?: string;
+  outputRoot?: string;
+  captureRoot?: string;
   files: GeneratedFile[];
 };
 

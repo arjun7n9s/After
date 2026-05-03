@@ -39,9 +39,15 @@ const kindLabel: Record<GeneratedFileKind, string> = {
   other: "File",
 };
 
+const collectionLabel: Record<GeneratedFile["collection"], string> = {
+  generated: "Generated",
+  captured: "Captured",
+};
+
 export function Files() {
   const [files, setFiles] = useState<GeneratedFile[]>([]);
   const [outputRoot, setOutputRoot] = useState<string | undefined>();
+  const [captureRoot, setCaptureRoot] = useState<string | undefined>();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [content, setContent] = useState<GeneratedFileContent | null>(null);
   const [isLoading, setLoading] = useState(true);
@@ -60,13 +66,14 @@ export function Files() {
       const listing = await apiService.getGeneratedFiles();
       const nextFiles = listing.files;
       setFiles(nextFiles);
-      setOutputRoot(listing.root);
+      setOutputRoot(listing.outputRoot);
+      setCaptureRoot(listing.captureRoot);
       setSelectedPath((currentPath) => {
         if (currentPath && nextFiles.some((file) => file.path === currentPath)) return currentPath;
         return nextFiles[0]?.path ?? null;
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load generated files");
+      setError(err instanceof Error ? err.message : "Failed to load project files");
     } finally {
       setLoading(false);
     }
@@ -91,7 +98,7 @@ export function Files() {
         if (mounted) setContent(nextContent);
       })
       .catch((err) => {
-        if (mounted) setError(err instanceof Error ? err.message : "Failed to read generated file");
+        if (mounted) setError(err instanceof Error ? err.message : "Failed to read project file");
       })
       .finally(() => {
         if (mounted) setReading(false);
@@ -109,13 +116,18 @@ export function Files() {
       <section className="glass-card overflow-hidden" style={{ borderRadius: 18 }}>
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--line)" }}>
           <div>
-            <h2 className="text-sm font-bold" style={{ color: "var(--ink)" }}>Generated Files</h2>
+            <h2 className="text-sm font-bold" style={{ color: "var(--ink)" }}>Project Files</h2>
             <p className="text-[11px]" style={{ color: "var(--ink-muted)" }}>
-              {files.length} asset{files.length === 1 ? "" : "s"} in outputs
+              {files.length} asset{files.length === 1 ? "" : "s"} across generated and captured sources
             </p>
             {outputRoot && (
               <p className="mt-1 max-w-[220px] truncate text-[10px]" style={{ color: "var(--ink-soft)" }}>
-                {outputRoot}
+                Generated: {outputRoot}
+              </p>
+            )}
+            {captureRoot && (
+              <p className="mt-1 max-w-[220px] truncate text-[10px]" style={{ color: "var(--ink-soft)" }}>
+                Captured: {captureRoot}
               </p>
             )}
           </div>
@@ -135,9 +147,9 @@ export function Files() {
           {files.length === 0 && (
             <div className="px-4 py-12 text-center">
               <FileText className="mx-auto h-8 w-8" style={{ color: "var(--cream-3)" }} aria-hidden="true" />
-              <p className="mt-3 text-sm font-semibold" style={{ color: "var(--ink)" }}>No generated files yet</p>
+              <p className="mt-3 text-sm font-semibold" style={{ color: "var(--ink)" }}>No project files yet</p>
               <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--ink-muted)" }}>
-                Generate a README or prepare video assets from the dashboard.
+                Generate outputs or capture evidence so assets appear here.
               </p>
             </div>
           )}
@@ -168,6 +180,7 @@ export function Files() {
                     {file.name}
                   </span>
                   <span className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--ink-muted)" }}>
+                    <span>{collectionLabel[file.collection]}</span>
                     <span>{kindLabel[file.kind]}</span>
                     <span>{formatBytes(file.sizeBytes)}</span>
                   </span>
@@ -185,7 +198,7 @@ export function Files() {
         {!selectedFile ? (
           <div className="flex min-h-[520px] items-center justify-center px-6 text-center">
             <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
-              Generated assets will appear here after you create them.
+              Generated outputs and captured Brain assets will appear here after you create them.
             </p>
           </div>
         ) : (
@@ -196,6 +209,9 @@ export function Files() {
                 <p className="mt-1 truncate text-[11px]" style={{ color: "var(--ink-muted)" }}>{selectedFile.path}</p>
               </div>
               <div className="flex items-center gap-2">
+                <span className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ background: "rgba(15,23,42,0.06)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>
+                  {collectionLabel[selectedFile.collection]}
+                </span>
                 <span className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ background: "var(--accent-glow)", color: "var(--accent)" }}>
                   {kindLabel[selectedFile.kind]}
                 </span>
@@ -235,6 +251,7 @@ export function Files() {
 
 function BinaryPreview({ file }: { file: GeneratedFile }) {
   const Icon = kindIcon[file.kind];
+  const locationLabel = file.collection === "captured" ? "Stored in Project Brain captures" : "Stored in project outputs";
 
   return (
     <div className="flex min-h-[420px] items-center justify-center text-center">
@@ -244,11 +261,11 @@ function BinaryPreview({ file }: { file: GeneratedFile }) {
         </div>
         <p className="mt-4 text-sm font-bold" style={{ color: "var(--ink)" }}>Preview not available</p>
         <p className="mt-1 max-w-sm text-xs leading-relaxed" style={{ color: "var(--ink-muted)" }}>
-          {file.name} is tracked as a generated asset, but this viewer only previews Markdown and text-based files.
+          {file.name} is tracked as a project asset, but this viewer only previews Markdown and text-based files.
         </p>
         <div className="mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold" style={{ border: "1px solid var(--line)", color: "var(--ink-soft)" }}>
           <Download className="h-3.5 w-3.5" aria-hidden="true" />
-          Stored in project outputs
+          {locationLabel}
         </div>
       </div>
     </div>

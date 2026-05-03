@@ -1,6 +1,6 @@
 # Quick Start: IBM Pro Mode (5 Minutes)
 
-This is the fastest way to get IBM Pro Mode running. For detailed information, see `IBM_PRO_SETUP_GUIDE.md`.
+This is the fastest way to get IBM Pro Mode running. For detailed information, see [ibm-pro-setup.md](./ibm-pro-setup.md).
 
 ## 🎯 What You'll Get
 
@@ -126,7 +126,7 @@ Set up billing alerts: https://cloud.ibm.com/billing/usage
 
 ## 📚 Need More Help?
 
-See the full guide: `IBM_PRO_SETUP_GUIDE.md`
+See the full guide: [ibm-pro-setup.md](./ibm-pro-setup.md)
 
 ---
 

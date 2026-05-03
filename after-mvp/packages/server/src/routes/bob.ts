@@ -26,6 +26,7 @@ export const createBobRouter = (projectPath: string) => {
   const repoAnalyzer = new RepoAnalyzer(projectPath);
   const renderPlanner = new VideoRenderPlanner();
   const outputRoot = join(projectPath, "outputs");
+  const captureRoot = join(projectPath, "brain", "captures");
 
   // Initialize IBM Pro Mode if configured
   const ibmProConfig = loadIBMProConfig();
@@ -488,21 +489,21 @@ export const createBobRouter = (projectPath: string) => {
 
   /**
    * GET /api/bob/files
-   * List generated output assets.
+   * List generated output assets and captured Brain artifacts.
    */
   router.get("/files", async (_req, res) => {
     try {
-      const files = await listGeneratedFiles(outputRoot);
+      const files = await listProjectFiles(outputRoot, captureRoot);
 
       res.json({
         success: true,
-        message: "Generated files",
-        data: { root: outputRoot, files },
+        message: "Project files",
+        data: { outputRoot, captureRoot, files },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to list generated files",
+        message: "Failed to list project files",
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -510,12 +511,12 @@ export const createBobRouter = (projectPath: string) => {
 
   /**
    * GET /api/bob/files/content?path=...
-   * Read a generated text asset for preview.
+   * Read a generated or captured text asset for preview.
    */
   router.get("/files/content", async (req, res) => {
     try {
       const requestedPath = String(req.query.path ?? "");
-      const resolvedPath = resolveOutputPath(outputRoot, requestedPath);
+      const resolvedPath = resolveProjectFilePath(outputRoot, captureRoot, requestedPath);
       const extension = extname(resolvedPath).toLowerCase();
 
       if (!isPreviewableExtension(extension)) {
@@ -529,7 +530,7 @@ export const createBobRouter = (projectPath: string) => {
 
       res.json({
         success: true,
-        message: "Generated file content",
+        message: "Project file content",
         data: {
           path: requestedPath,
           name: basename(resolvedPath),
@@ -1038,11 +1039,30 @@ type GeneratedFile = {
   extension: string;
   sizeBytes: number;
   updatedAt: string;
+  collection: "generated" | "captured";
   kind: "markdown" | "video" | "audio" | "image" | "html" | "json" | "text" | "other";
   previewable: boolean;
 };
 
-const listGeneratedFiles = async (root: string): Promise<GeneratedFile[]> => {
+const listProjectFiles = async (
+  outputRoot: string,
+  captureRoot: string,
+): Promise<GeneratedFile[]> => {
+  const [generatedFiles, capturedFiles] = await Promise.all([
+    listFilesWithinRoot(outputRoot, "generated", "generated"),
+    listFilesWithinRoot(captureRoot, "captured", "captured"),
+  ]);
+
+  return [...capturedFiles, ...generatedFiles].sort(
+    (left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+  );
+};
+
+const listFilesWithinRoot = async (
+  root: string,
+  pathPrefix: "generated" | "captured",
+  collection: GeneratedFile["collection"],
+): Promise<GeneratedFile[]> => {
   try {
     await mkdir(root, { recursive: true });
     const files: GeneratedFile[] = [];
@@ -1060,12 +1080,14 @@ const listGeneratedFiles = async (root: string): Promise<GeneratedFile[]> => {
 
         const fileStat = await stat(absolutePath);
         const extension = extname(entry.name).toLowerCase();
+        const relativePath = relative(root, absolutePath).replace(/\\/g, "/");
         files.push({
-          path: relative(root, absolutePath).replace(/\\/g, "/"),
+          path: `${pathPrefix}/${relativePath}`,
           name: entry.name,
           extension,
           sizeBytes: fileStat.size,
           updatedAt: fileStat.mtime.toISOString(),
+          collection,
           kind: getGeneratedFileKind(extension),
           previewable: isPreviewableExtension(extension),
         });
@@ -1073,18 +1095,36 @@ const listGeneratedFiles = async (root: string): Promise<GeneratedFile[]> => {
     };
 
     await visit(root);
-    return files.sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+    return files;
   } catch {
     return [];
   }
 };
 
-const resolveOutputPath = (root: string, requestedPath: string): string => {
+const resolveProjectFilePath = (
+  outputRoot: string,
+  captureRoot: string,
+  requestedPath: string,
+): string => {
+  const normalizedPath = requestedPath.replace(/\\/g, "/");
+
+  if (normalizedPath.startsWith("generated/")) {
+    return resolveFileWithinRoot(outputRoot, normalizedPath.slice("generated/".length));
+  }
+
+  if (normalizedPath.startsWith("captured/")) {
+    return resolveFileWithinRoot(captureRoot, normalizedPath.slice("captured/".length));
+  }
+
+  return resolveFileWithinRoot(outputRoot, normalizedPath);
+};
+
+const resolveFileWithinRoot = (root: string, requestedPath: string): string => {
   const resolvedRoot = resolve(root);
   const resolvedPath = resolve(resolvedRoot, requestedPath);
 
   if (!resolvedPath.startsWith(resolvedRoot)) {
-    throw new Error("Generated file path is outside outputs directory");
+    throw new Error("Requested file path is outside the allowed directory");
   }
 
   return resolvedPath;
