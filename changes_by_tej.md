@@ -182,6 +182,13 @@
   - Added Remotion-ready scene components for storyboard playback.
   - Added Jest configs for `@after/outputs` and `@after/video` so their tests run.
   - Verified Task 9-13 with `npm audit`, `npm run build`, `npm run check-types`, `npm run lint`, and `npm run test`.
+- Task 14 started with the video render preparation pipeline:
+  - Added SRT caption generation from storyboard scene timing.
+  - Added a video render planner with fps, dimensions, total frame count, composition ID, and output paths.
+  - Added artifact writing for `demo_script.md`, `demo_storyboard.json`, `demo_captions.srt`, and `demo_sources.json`.
+  - Added `POST /api/bob/video/render` to prepare storyboard, captions, script, and source manifest from Project Brain.
+  - Added video package tests for caption timing, SRT formatting, render plans, and artifact writing.
+  - Verified Task 14 with `npm audit`, `npm run build`, `npm run check-types`, `npm run lint`, and `npm run test`.
 - Review pass before continuing:
   - Workspace build, typecheck, tests, and dependency audit were checked.
   - `npm audit` reported `0 vulnerabilities`.

@@ -6,7 +6,7 @@ import {
   ChangelogGenerator,
   JourneyGenerator,
 } from "@after/outputs";
-import { StoryboardGenerator } from "@after/video";
+import { StoryboardGenerator, VideoRenderPlanner } from "@after/video";
 import type { StoryboardTone } from "@after/video";
 
 export const createBobRouter = (projectPath: string) => {
@@ -14,6 +14,7 @@ export const createBobRouter = (projectPath: string) => {
   const reader = new BrainReader(projectPath);
   const writer = new BrainWriter(projectPath);
   const chatService = new ChatService(projectPath);
+  const renderPlanner = new VideoRenderPlanner();
 
   /**
    * POST /api/bob/narrate
@@ -375,6 +376,44 @@ export const createBobRouter = (projectPath: string) => {
       res.status(500).json({
         success: false,
         message: "Failed to generate storyboard",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * POST /api/bob/video/render
+   * Prepare demo video render artifacts from Project Brain
+   */
+  router.post("/video/render", async (req, res) => {
+    try {
+      const generator = new StoryboardGenerator(projectPath);
+      const requestedTone = req.body?.tone;
+      const storyboard = await generator.generate({
+        maxTimelineScenes:
+          typeof req.body?.maxTimelineScenes === "number"
+            ? req.body.maxTimelineScenes
+            : undefined,
+        tone: isStoryboardTone(requestedTone) ? requestedTone : undefined,
+      });
+      const renderPlan = await renderPlanner.writeArtifacts(projectPath, storyboard, {
+        fps: typeof req.body?.fps === "number" ? req.body.fps : undefined,
+        width: typeof req.body?.width === "number" ? req.body.width : undefined,
+        height: typeof req.body?.height === "number" ? req.body.height : undefined,
+      });
+
+      res.json({
+        success: true,
+        message: "Video render artifacts prepared",
+        data: {
+          storyboard,
+          renderPlan,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to prepare video render artifacts",
         error: error instanceof Error ? error.message : String(error),
       });
     }
