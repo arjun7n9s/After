@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 
 import { Dashboard } from "@/screens/Dashboard";
 import { useAppStore } from "@/stores/app-store";
@@ -7,8 +8,21 @@ import { useAppStore } from "@/stores/app-store";
 vi.mock("@/services/api", () => ({
   apiService: {
     generateReadme: vi.fn().mockResolvedValue("# After"),
+    analyzeRepo: vi.fn(),
+    getProject: vi.fn(),
+    getEvents: vi.fn(),
+    getRepoAnalysisStatus: vi.fn(),
+    getVideoReadiness: vi.fn(),
+    prepareVideoAssets: vi.fn(),
   },
 }));
+
+const renderDashboard = () =>
+  render(
+    <MemoryRouter>
+      <Dashboard />
+    </MemoryRouter>,
+  );
 
 describe("Dashboard", () => {
   afterEach(() => {
@@ -18,7 +32,7 @@ describe("Dashboard", () => {
   });
 
   it("renders project overview and quick stats", () => {
-    render(<Dashboard />);
+    renderDashboard();
 
     expect(screen.getByText("After")).toBeInTheDocument();
     expect(screen.getByText("Recent Activity")).toBeInTheDocument();
@@ -30,18 +44,22 @@ describe("Dashboard", () => {
     act(() => {
       useAppStore.setState({ isLoading: true });
     });
-    const { rerender } = render(<Dashboard />);
+    const { rerender } = renderDashboard();
     expect(screen.getByLabelText("Loading project data")).toBeInTheDocument();
 
     act(() => {
       useAppStore.setState({ isLoading: false, error: "No backend" });
     });
-    rerender(<Dashboard />);
+    rerender(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    );
     expect(screen.getByText("No backend")).toBeInTheDocument();
   });
 
   it("adds a toast after README generation", async () => {
-    render(<Dashboard />);
+    renderDashboard();
 
     fireEvent.click(screen.getByRole("button", { name: /generate readme/i }));
 

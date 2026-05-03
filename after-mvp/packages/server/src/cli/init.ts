@@ -30,7 +30,7 @@ const ensureAfterIgnore = async (projectPath: string): Promise<void> => {
   } catch {
     await writeFile(
       afterIgnorePath,
-      ["node_modules", ".git", ".env*", "dist", "coverage", ""].join("\n"),
+      ["node_modules", ".git", ".env*", "dist", "coverage", "brain", "outputs", ""].join("\n"),
       "utf8",
     );
   }

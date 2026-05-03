@@ -14,6 +14,8 @@ import { useAppStore } from "@/stores/app-store";
 function App() {
   const setProject = useAppStore((state) => state.setProject);
   const setEvents = useAppStore((state) => state.setEvents);
+  const setRepoAnalysis = useAppStore((state) => state.setRepoAnalysis);
+  const setVideoReadiness = useAppStore((state) => state.setVideoReadiness);
   const addEvent = useAppStore((state) => state.addEvent);
   const setConnected = useAppStore((state) => state.setConnected);
   const setLoading = useAppStore((state) => state.setLoading);
@@ -25,18 +27,22 @@ function App() {
     setError(null);
 
     try {
-      const [project, events] = await Promise.all([
+      const [project, events, repoAnalysis, videoReadiness] = await Promise.all([
         apiService.getProject(),
         apiService.getEvents(),
+        apiService.getRepoAnalysisStatus(),
+        apiService.getVideoReadiness(),
       ]);
       setProject(project);
       setEvents(events);
+      setRepoAnalysis(repoAnalysis);
+      setVideoReadiness(videoReadiness);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to load project data");
     } finally {
       setLoading(false);
     }
-  }, [setError, setEvents, setLoading, setProject]);
+  }, [setError, setEvents, setLoading, setProject, setRepoAnalysis, setVideoReadiness]);
 
   useEffect(() => {
     void refreshData();

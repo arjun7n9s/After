@@ -3,6 +3,7 @@ import {
   BrainReader,
   BrainWriter,
   ChatService,
+  RepoAnalyzer,
   loadIBMProConfig,
   IBMProService,
 } from "@after/core";
@@ -20,6 +21,7 @@ export const createBobRouter = (projectPath: string) => {
   const reader = new BrainReader(projectPath);
   const writer = new BrainWriter(projectPath);
   const chatService = new ChatService(projectPath);
+  const repoAnalyzer = new RepoAnalyzer(projectPath);
   const renderPlanner = new VideoRenderPlanner();
 
   // Initialize IBM Pro Mode if configured
@@ -74,7 +76,29 @@ export const createBobRouter = (projectPath: string) => {
       const id = `${type}-${Date.now()}`;
 
       // Handle different snapshot types
-      if (type === "decision") {
+      if (type === "screenshot" || type === "terminal") {
+        const mediaPath =
+          typeof context?.path === "string" && context.path.trim()
+            ? context.path
+            : `brain/captures/${type === "screenshot" ? "screenshots" : "terminal"}/${id}.txt`;
+
+        await writer.addMedia({
+          id,
+          type,
+          path: mediaPath,
+          capturedAt: timestamp,
+          caption: title || content || `${type} snapshot`,
+          sources: typeof context?.source === "string" ? [{ path: context.source }] : [],
+        });
+        await writer.appendJourneyEntry({
+          id: `journey-${id}`,
+          timestamp,
+          kind: "milestone",
+          title: title || `${type} snapshot captured`,
+          narrative: content || `Captured ${type} evidence for demo generation.`,
+          sources: [{ path: mediaPath }],
+        });
+      } else if (type === "decision") {
         await writer.appendDecision({
           id,
           date: timestamp,
@@ -179,10 +203,14 @@ export const createBobRouter = (projectPath: string) => {
             projectName: overview.projectName,
             status: overview.status,
             summary: overview.summary,
+            repositoryPath: overview.repositoryPath,
+            primaryLanguage: overview.primaryLanguage,
+            frameworks: overview.frameworks,
             stats: {
               decisions: decisions.length,
               changes: changelog.length,
               journeyEntries: journey.length,
+              media: (await reader.readMedia()).length,
             },
           },
         });
@@ -631,6 +659,92 @@ export const createBobRouter = (projectPath: string) => {
       res.status(500).json({
         success: false,
         message: "Failed to process IBM Pro chat",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/bob/repo/status
+   * Inspect configured repository and decide whether the user should approve analysis.
+   */
+  router.get("/repo/status", async (_req, res) => {
+    try {
+      const status = await repoAnalyzer.inspect();
+
+      res.json({
+        success: true,
+        message: "Repository analysis status",
+        data: status,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to inspect repository",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * POST /api/bob/repo/analyze
+   * Analyze local repository files and fill the Project Brain after user consent.
+   */
+  router.post("/repo/analyze", async (_req, res) => {
+    try {
+      const result = await repoAnalyzer.analyzeAndWriteBrain();
+
+      res.json({
+        success: true,
+        message: "Repository context added to Project Brain",
+        data: result,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to analyze repository",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/bob/video/status
+   * Report whether demo video assets can be prepared from current context.
+   */
+  router.get("/video/status", async (_req, res) => {
+    try {
+      const [media, journey, changelog] = await Promise.all([
+        reader.readMedia(),
+        reader.readJourney(),
+        reader.readChangelog(),
+      ]);
+      const screenshotCount = media.filter((item) => item.type === "screenshot").length;
+      const repoAnalysisDone = changelog.some((entry) => entry.id.startsWith("repo-analysis-"));
+      const hasNarrativeContext = journey.length > 1 || repoAnalysisDone;
+      const canGenerate = screenshotCount > 0 || hasNarrativeContext;
+
+      res.json({
+        success: true,
+        message: "Video readiness status",
+        data: {
+          canGenerate,
+          hasSnapshots: screenshotCount > 0,
+          screenshotCount,
+          hasNarrativeContext,
+          repoAnalysisDone,
+          requiresRuntimeSnapshots: screenshotCount === 0,
+          recommendation: canGenerate
+            ? screenshotCount > 0
+              ? "Video assets can use captured snapshots."
+              : "Video assets can be prepared now; run and test the project to add richer snapshots."
+            : "Run the project, test key flows, and capture snapshots before preparing demo video assets.",
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to check video readiness",
         error: error instanceof Error ? error.message : String(error),
       });
     }

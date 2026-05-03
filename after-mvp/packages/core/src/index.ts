@@ -1,4 +1,5 @@
 // Memory exports
+export * from "./analysis/repo-analyzer";
 export * from "./memory/brain-files";
 export * from "./memory/brain-reader";
 export * from "./memory/brain-writer";
