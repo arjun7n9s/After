@@ -17,7 +17,6 @@ import { LoadingSkeleton } from "@/components/LoadingSkeleton";
 import { fallbackProject } from "@/data/mock-data";
 import {
   ActivityHeatmap,
-  SegmentedRing,
   Sparkline,
 } from "@/components/MiniCharts";
 import { RetryPanel } from "@/components/RetryPanel";
@@ -284,12 +283,15 @@ export function Dashboard() {
                     {displayProject.stats.commits}
                   </span>
                   <div className="opacity-80">
-                    <ActivityHeatmap color="#c87d42" />
+                    <ActivityHeatmap
+                      color="#c87d42"
+                      data={displayProject.stats.commitActivity ?? []}
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Decisions: Segmented Ring */}
+              {/* Decisions */}
               <div
                 className="flex flex-col justify-between rounded-2xl p-4"
                 style={{
@@ -317,9 +319,15 @@ export function Dashboard() {
                   >
                     {displayProject.stats.decisions}
                   </span>
-                  <div className="h-6 w-6 opacity-90">
-                    <SegmentedRing color="#7a5e4b" percentage={75} />
-                  </div>
+                  <span
+                    className="rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wider"
+                    style={{
+                      background: "rgba(122, 94, 75, 0.14)",
+                      color: "#7a5e4b",
+                    }}
+                  >
+                    logged
+                  </span>
                 </div>
               </div>
 
@@ -364,7 +372,7 @@ export function Dashboard() {
             <div
               className="mt-5 flex flex-wrap items-center gap-2 rounded-2xl px-3 py-2 text-[11px]"
               style={{
-                background: "rgba(255,252,247,0.66)",
+                background: "var(--cream-1)",
                 border: "1px solid var(--line)",
                 color: "var(--ink-soft)",
               }}
@@ -377,7 +385,7 @@ export function Dashboard() {
               <span className="font-semibold" style={{ color: "var(--ink)" }}>
                 Connected repo
               </span>
-              <span className="min-w-0 truncate">
+              <span className="min-w-0 truncate font-medium" style={{ color: "var(--ink)" }}>
                 {displayProject.repositoryPath ||
                   repoAnalysis?.projectPath ||
                   "Start the API with a project folder"}

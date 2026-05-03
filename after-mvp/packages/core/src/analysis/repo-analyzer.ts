@@ -292,14 +292,30 @@ export class RepoAnalyzer {
   }
 
   async getRecentCommitCount(days = 14): Promise<number> {
+    const activity = await this.getRecentCommitActivity(days);
+    return activity.reduce((total, count) => total + count, 0);
+  }
+
+  async getRecentCommitActivity(days = 14): Promise<number[]> {
     try {
       const git = simpleGit(this.projectPath);
-      if (!(await git.checkIsRepo())) return 0;
-      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      if (!(await git.checkIsRepo())) return Array.from({ length: days }, () => 0);
+      const start = startOfLocalDay(new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000));
+      const since = start.toISOString();
       const log = await git.log({ "--since": since, maxCount: 100 });
-      return log.all.length;
+      const buckets = Array.from({ length: days }, () => 0);
+
+      for (const commit of log.all) {
+        const commitDay = startOfLocalDay(new Date(commit.date));
+        const dayIndex = Math.floor((commitDay.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+        if (dayIndex >= 0 && dayIndex < buckets.length) {
+          buckets[dayIndex] = (buckets[dayIndex] ?? 0) + 1;
+        }
+      }
+
+      return buckets;
     } catch {
-      return 0;
+      return Array.from({ length: days }, () => 0);
     }
   }
 
@@ -602,3 +618,6 @@ const slug = (value: string): string =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+
+const startOfLocalDay = (date: Date): Date =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate());

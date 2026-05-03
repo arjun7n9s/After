@@ -202,7 +202,8 @@ export const createBobRouter = (projectPath: string) => {
         const commitEntries = journey.filter((entry) =>
           entry.title.toLowerCase().startsWith("commit:"),
         );
-        const recentCommitCount = await repoAnalyzer.getRecentCommitCount(14);
+        const recentCommitActivity = await repoAnalyzer.getRecentCommitActivity(14);
+        const recentCommitCount = recentCommitActivity.reduce((total, count) => total + count, 0);
 
         res.json({
           success: true,
@@ -219,6 +220,7 @@ export const createBobRouter = (projectPath: string) => {
               changes: changelog.length,
               journeyEntries: journey.length,
               commits: Math.max(commitEntries.length, recentCommitCount),
+              commitActivity: recentCommitActivity,
               media: media.length,
             },
           },

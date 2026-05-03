@@ -56,20 +56,28 @@ export function Sparkline({ color, data }: { color: string; data: number[] }) {
 }
 
 /**
- * A tiny 7x2 grid of activity blocks with a scale label.
+ * A tiny 7x2 grid of daily activity blocks.
  */
-export function ActivityHeatmap({ color }: { color: string }) {
+export function ActivityHeatmap({
+  color,
+  data,
+}: {
+  color: string;
+  data: number[];
+}) {
+  const days = normalizeActivity(data);
+  const max = Math.max(...days, 1);
+
   return (
     <div className="flex flex-col gap-1 items-end">
       <div className="grid grid-cols-7 gap-1">
-        {Array.from({ length: 14 }).map((_, i) => {
-          // Random opacity to simulate activity heatmap
-          const opacity = Math.max(0.1, Math.random() * 0.8 + 0.2);
+        {days.map((count, i) => {
+          const opacity = count === 0 ? 0.16 : 0.28 + (count / max) * 0.72;
           return (
             <div
               key={i}
               className="h-2 w-2 rounded-sm"
-              title={`Activity on day ${i + 1}`}
+              title={`${count} commit${count === 1 ? "" : "s"} ${i === days.length - 1 ? "today" : `${days.length - i - 1} day${days.length - i - 1 === 1 ? "" : "s"} ago`}`}
               style={{
                 backgroundColor: color,
                 opacity,
@@ -88,6 +96,11 @@ export function ActivityHeatmap({ color }: { color: string }) {
     </div>
   );
 }
+
+const normalizeActivity = (data: number[]): number[] => {
+  const lastFourteen = data.slice(-14);
+  return [...Array.from({ length: Math.max(0, 14 - lastFourteen.length) }, () => 0), ...lastFourteen];
+};
 
 /**
  * A segmented progress ring with centered percentage label.

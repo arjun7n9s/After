@@ -10,6 +10,7 @@ export type Project = {
   stats: {
     captures: number;
     commits: number;
+    commitActivity?: number[];
     decisions: number;
     changes: number;
     media?: number;
