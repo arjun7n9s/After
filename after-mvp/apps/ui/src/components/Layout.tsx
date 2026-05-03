@@ -13,6 +13,7 @@ const routeTitles: Record<string, string> = {
   "/": "Dashboard",
   "/timeline": "Timeline",
   "/chat": "Chat",
+  "/files": "Files",
 };
 
 export function Layout({ onRefresh }: LayoutProps) {

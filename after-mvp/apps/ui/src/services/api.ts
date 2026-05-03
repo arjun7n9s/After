@@ -4,6 +4,8 @@ import type {
   ChatMode,
   ChatProgressEvent,
   ChatResponse,
+  GeneratedFile,
+  GeneratedFileContent,
   Project,
   RepoAnalysisStatus,
   SearchResult,
@@ -75,6 +77,19 @@ type BobRepoStatusResponse = {
 type BobVideoStatusResponse = {
   success: boolean;
   data?: VideoReadiness;
+};
+
+type BobFilesResponse = {
+  success: boolean;
+  data?: {
+    root?: string;
+    files?: GeneratedFile[];
+  };
+};
+
+type BobFileContentResponse = {
+  success: boolean;
+  data?: GeneratedFileContent;
 };
 
 type ChatStreamMessage =
@@ -304,6 +319,26 @@ class ApiService {
     } catch {
       return null;
     }
+  }
+
+  async getGeneratedFiles(): Promise<GeneratedFile[]> {
+    try {
+      const response = await this.request("/api/bob/files");
+      if (!response.ok) throw new Error(`Generated files request failed: ${response.status}`);
+      const payload = (await response.json()) as BobFilesResponse;
+      return payload.success ? payload.data?.files ?? [] : [];
+    } catch {
+      return [];
+    }
+  }
+
+  async getGeneratedFileContent(path: string): Promise<GeneratedFileContent> {
+    const params = new URLSearchParams({ path });
+    const response = await this.request(`/api/bob/files/content?${params.toString()}`);
+    if (!response.ok) throw new Error(`Generated file content failed: ${response.status}`);
+    const payload = (await response.json()) as BobFileContentResponse;
+    if (!payload.success || !payload.data) throw new Error("Generated file content missing");
+    return payload.data;
   }
 
   private async request(path: string, init?: RequestInit): Promise<Response> {

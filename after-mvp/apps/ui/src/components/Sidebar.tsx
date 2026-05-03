@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Activity, Boxes, ChevronRight, LayoutDashboard, MessageSquare } from "lucide-react";
+import { Activity, Boxes, ChevronRight, Files, LayoutDashboard, MessageSquare } from "lucide-react";
 
 import { StatusIndicator } from "@/components/StatusIndicator";
 import { useAppStore } from "@/stores/app-store";
@@ -14,6 +14,7 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/timeline", label: "Timeline", icon: Activity },
   { to: "/chat", label: "Chat", icon: MessageSquare },
+  { to: "/files", label: "Files", icon: Files },
 ];
 
 export function Sidebar({ project }: SidebarProps) {

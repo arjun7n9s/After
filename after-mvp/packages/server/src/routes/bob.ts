@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
+import { basename, extname, join, relative, resolve } from "node:path";
 import {
   BrainReader,
   BrainWriter,
@@ -23,6 +25,7 @@ export const createBobRouter = (projectPath: string) => {
   const chatService = new ChatService(projectPath);
   const repoAnalyzer = new RepoAnalyzer(projectPath);
   const renderPlanner = new VideoRenderPlanner();
+  const outputRoot = join(projectPath, "outputs");
 
   // Initialize IBM Pro Mode if configured
   const ibmProConfig = loadIBMProConfig();
@@ -289,6 +292,7 @@ export const createBobRouter = (projectPath: string) => {
     try {
       const generator = new ReadmeGenerator(reader, { projectPath });
       const output = await generator.generate();
+      await writeGeneratedOutput("README.generated.md", output.content);
 
       res.json({
         success: true,
@@ -316,6 +320,7 @@ export const createBobRouter = (projectPath: string) => {
     try {
       const generator = new ChangelogGenerator(reader, { projectPath });
       const output = await generator.generate();
+      await writeGeneratedOutput("CHANGELOG.generated.md", output.content);
 
       res.json({
         success: true,
@@ -343,6 +348,7 @@ export const createBobRouter = (projectPath: string) => {
     try {
       const generator = new JourneyGenerator(reader, { projectPath });
       const output = await generator.generate();
+      await writeGeneratedOutput("JOURNEY.generated.md", output.content);
 
       res.json({
         success: true,
@@ -370,6 +376,7 @@ export const createBobRouter = (projectPath: string) => {
     try {
       const generator = new AbstractGenerator(reader, { projectPath });
       const output = await generator.generate();
+      await writeGeneratedOutput("abstract.generated.html", output.content);
 
       res.json({
         success: true,
@@ -452,6 +459,66 @@ export const createBobRouter = (projectPath: string) => {
       res.status(500).json({
         success: false,
         message: "Failed to prepare video render artifacts",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/bob/files
+   * List generated output assets.
+   */
+  router.get("/files", async (_req, res) => {
+    try {
+      const files = await listGeneratedFiles(outputRoot);
+
+      res.json({
+        success: true,
+        message: "Generated files",
+        data: { root: outputRoot, files },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to list generated files",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/bob/files/content?path=...
+   * Read a generated text asset for preview.
+   */
+  router.get("/files/content", async (req, res) => {
+    try {
+      const requestedPath = String(req.query.path ?? "");
+      const resolvedPath = resolveOutputPath(outputRoot, requestedPath);
+      const extension = extname(resolvedPath).toLowerCase();
+
+      if (!isPreviewableExtension(extension)) {
+        return res.status(415).json({
+          success: false,
+          message: "File type cannot be previewed as text",
+        });
+      }
+
+      const content = await readFile(resolvedPath, "utf8");
+
+      res.json({
+        success: true,
+        message: "Generated file content",
+        data: {
+          path: requestedPath,
+          name: basename(resolvedPath),
+          extension,
+          content,
+        },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to read generated file",
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -931,9 +998,87 @@ export const createBobRouter = (projectPath: string) => {
   });
 
   return router;
+
+  async function writeGeneratedOutput(fileName: string, content: string): Promise<string> {
+    await mkdir(outputRoot, { recursive: true });
+    const outputPath = join(outputRoot, fileName);
+    await writeFile(outputPath, content, "utf8");
+    return outputPath;
+  }
 };
 
 const isStoryboardTone = (value: unknown): value is StoryboardTone =>
   value === "technical" || value === "pitch" || value === "journey";
+
+type GeneratedFile = {
+  path: string;
+  name: string;
+  extension: string;
+  sizeBytes: number;
+  updatedAt: string;
+  kind: "markdown" | "video" | "audio" | "image" | "html" | "json" | "text" | "other";
+  previewable: boolean;
+};
+
+const listGeneratedFiles = async (root: string): Promise<GeneratedFile[]> => {
+  try {
+    await mkdir(root, { recursive: true });
+    const files: GeneratedFile[] = [];
+
+    const visit = async (directory: string): Promise<void> => {
+      const entries = await readdir(directory, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const absolutePath = join(directory, entry.name);
+        if (entry.isDirectory()) {
+          await visit(absolutePath);
+          continue;
+        }
+
+        const fileStat = await stat(absolutePath);
+        const extension = extname(entry.name).toLowerCase();
+        files.push({
+          path: relative(root, absolutePath).replace(/\\/g, "/"),
+          name: entry.name,
+          extension,
+          sizeBytes: fileStat.size,
+          updatedAt: fileStat.mtime.toISOString(),
+          kind: getGeneratedFileKind(extension),
+          previewable: isPreviewableExtension(extension),
+        });
+      }
+    };
+
+    await visit(root);
+    return files.sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime());
+  } catch {
+    return [];
+  }
+};
+
+const resolveOutputPath = (root: string, requestedPath: string): string => {
+  const resolvedRoot = resolve(root);
+  const resolvedPath = resolve(resolvedRoot, requestedPath);
+
+  if (!resolvedPath.startsWith(resolvedRoot)) {
+    throw new Error("Generated file path is outside outputs directory");
+  }
+
+  return resolvedPath;
+};
+
+const isPreviewableExtension = (extension: string): boolean =>
+  [".md", ".markdown", ".txt", ".json", ".html", ".htm", ".srt"].includes(extension);
+
+const getGeneratedFileKind = (extension: string): GeneratedFile["kind"] => {
+  if (extension === ".md" || extension === ".markdown") return "markdown";
+  if (extension === ".mp4" || extension === ".mov" || extension === ".webm") return "video";
+  if (extension === ".wav" || extension === ".mp3" || extension === ".m4a") return "audio";
+  if (extension === ".png" || extension === ".jpg" || extension === ".jpeg" || extension === ".webp") return "image";
+  if (extension === ".html" || extension === ".htm") return "html";
+  if (extension === ".json") return "json";
+  if (extension === ".txt" || extension === ".srt") return "text";
+  return "other";
+};
 
 // Made with Bob

@@ -8,6 +8,7 @@ import { apiService } from "@/services/api";
 import { webSocketService } from "@/services/websocket";
 import { Chat } from "@/screens/Chat";
 import { Dashboard } from "@/screens/Dashboard";
+import { Files } from "@/screens/Files";
 import { Timeline } from "@/screens/Timeline";
 import { useAppStore } from "@/stores/app-store";
 
@@ -71,6 +72,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/timeline" element={<Timeline />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/files" element={<Files />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

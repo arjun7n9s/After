@@ -108,3 +108,30 @@ export type VideoReadiness = {
   requiresRuntimeSnapshots: boolean;
   recommendation: string;
 };
+
+export type GeneratedFileKind =
+  | "markdown"
+  | "video"
+  | "audio"
+  | "image"
+  | "html"
+  | "json"
+  | "text"
+  | "other";
+
+export type GeneratedFile = {
+  path: string;
+  name: string;
+  extension: string;
+  sizeBytes: number;
+  updatedAt: string;
+  kind: GeneratedFileKind;
+  previewable: boolean;
+};
+
+export type GeneratedFileContent = {
+  path: string;
+  name: string;
+  extension: string;
+  content: string;
+};
