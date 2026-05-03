@@ -72,12 +72,18 @@ export const runCli = async (argv = process.argv): Promise<void> => {
     .command("init")
     .argument("[projectPath]", "project path", ".")
     .option("-n, --name <projectName>", "project display name")
+    .option("-p, --port <port>", "API port to use when you start After", process.env.PORT ?? "3000")
     .description("Initialize a local Project Brain")
-    .action(async (projectPath: string, options: { name?: string }) => {
+    .action(async (projectPath: string, options: { name?: string; port: string }) => {
+      const resolvedProjectPath = resolve(projectPath);
       const brainPath = await initProject(projectPath, {
         projectName: options.name,
       });
       console.log(`Project Brain initialized at ${brainPath}`);
+      console.log(`Connected repository: ${resolvedProjectPath}`);
+      console.log(`Start API: after start "${resolvedProjectPath}" -p ${options.port}`);
+      console.log("Start dashboard: npm run dev --workspace=@after/ui");
+      console.log("Open dashboard: http://localhost:5173");
     });
 
   program
@@ -95,6 +101,7 @@ export const runCli = async (argv = process.argv): Promise<void> => {
       server.listen(port, () => {
         console.log(`After API listening on http://localhost:${port}`);
         console.log(`After WebSocket listening on ws://localhost:${port}/ws`);
+        console.log("After dashboard: http://localhost:5173");
         console.log(`Project: ${resolvedProjectPath}`);
       });
     });

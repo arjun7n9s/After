@@ -5,7 +5,9 @@ import type {
   ChatProgressEvent,
   ChatResponse,
   Project,
+  RepoAnalysisStatus,
   SearchResult,
+  VideoReadiness,
 } from "@/types";
 
 type BobStatusResponse = {
@@ -18,7 +20,11 @@ type BobStatusResponse = {
       decisions?: number;
       changes?: number;
       journeyEntries?: number;
+      media?: number;
     };
+    repositoryPath?: string;
+    primaryLanguage?: string;
+    frameworks?: string[];
   };
 };
 
@@ -61,6 +67,16 @@ type BobChatStatusResponse = {
   };
 };
 
+type BobRepoStatusResponse = {
+  success: boolean;
+  data?: RepoAnalysisStatus;
+};
+
+type BobVideoStatusResponse = {
+  success: boolean;
+  data?: VideoReadiness;
+};
+
 type ChatStreamMessage =
   | ({ type: "progress" } & ChatProgressEvent)
   | { type: "final"; data: ChatResponse }
@@ -82,11 +98,15 @@ class ApiService {
         name: data.projectName || fallbackProject.name,
         summary: data.summary || fallbackProject.summary,
         status: data.status || fallbackProject.status,
+        repositoryPath: data.repositoryPath,
+        primaryLanguage: data.primaryLanguage,
+        frameworks: data.frameworks || [],
         stats: {
           captures: data.stats?.journeyEntries || fallbackProject.stats.captures,
           commits: fallbackProject.stats.commits,
           decisions: data.stats?.decisions || 0,
           changes: data.stats?.changes || 0,
+          media: data.stats?.media || 0,
         },
         lastActivity: new Date().toISOString(),
       };
@@ -140,6 +160,15 @@ class ApiService {
     if (!response.ok) throw new Error(`README generation failed: ${response.status}`);
     const payload = (await response.json()) as { data?: { content?: string } };
     return payload.data?.content || "";
+  }
+
+  async prepareVideoAssets(): Promise<void> {
+    const response = await this.request("/api/bob/video/render", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tone: "pitch", width: 1920, height: 1080, fps: 30 }),
+    });
+    if (!response.ok) throw new Error(`Video asset preparation failed: ${response.status}`);
   }
 
   async chatBrain(
@@ -244,6 +273,36 @@ class ApiService {
         cloudant: false,
         nlu: false,
       };
+    }
+  }
+
+  async getRepoAnalysisStatus(): Promise<RepoAnalysisStatus | null> {
+    try {
+      const response = await this.request("/api/bob/repo/status");
+      if (!response.ok) throw new Error(`Repo status failed: ${response.status}`);
+      const payload = (await response.json()) as BobRepoStatusResponse;
+      return payload.success ? payload.data ?? null : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async analyzeRepo(): Promise<RepoAnalysisStatus> {
+    const response = await this.request("/api/bob/repo/analyze", { method: "POST" });
+    if (!response.ok) throw new Error(`Repo analysis failed: ${response.status}`);
+    const payload = (await response.json()) as BobRepoStatusResponse;
+    if (!payload.success || !payload.data) throw new Error("Repo analysis failed");
+    return payload.data;
+  }
+
+  async getVideoReadiness(): Promise<VideoReadiness | null> {
+    try {
+      const response = await this.request("/api/bob/video/status");
+      if (!response.ok) throw new Error(`Video readiness failed: ${response.status}`);
+      const payload = (await response.json()) as BobVideoStatusResponse;
+      return payload.success ? payload.data ?? null : null;
+    } catch {
+      return null;
     }
   }
 

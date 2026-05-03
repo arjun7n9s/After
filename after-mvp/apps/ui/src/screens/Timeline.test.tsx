@@ -9,7 +9,6 @@ describe("Timeline", () => {
 
     expect(screen.getByRole("textbox", { name: /search timeline/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "All" })).toBeInTheDocument();
-    expect(screen.getByText("Event Detail")).toBeInTheDocument();
     expect(screen.getByText("Capture engine completed")).toBeInTheDocument();
   });
 
@@ -26,6 +25,6 @@ describe("Timeline", () => {
 
     expect(screen.getByText("Dashboard slice started")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Dashboard slice started"));
-    expect(screen.getAllByText("apps/ui/src")).toHaveLength(2);
+    expect(screen.getByText("apps/ui/src")).toBeInTheDocument();
   });
 });

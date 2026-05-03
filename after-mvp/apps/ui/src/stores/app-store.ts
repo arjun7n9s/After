@@ -1,7 +1,14 @@
 import { create } from "zustand";
 
 import { fallbackEvents, fallbackProject } from "@/data/mock-data";
-import type { CaptureEvent, Project, ThemeMode, ToastMessage } from "@/types";
+import type {
+  CaptureEvent,
+  Project,
+  RepoAnalysisStatus,
+  ThemeMode,
+  ToastMessage,
+  VideoReadiness,
+} from "@/types";
 
 type AppState = {
   project: Project;
@@ -12,8 +19,12 @@ type AppState = {
   error: string | null;
   theme: ThemeMode;
   toasts: ToastMessage[];
+  repoAnalysis: RepoAnalysisStatus | null;
+  videoReadiness: VideoReadiness | null;
   setProject: (project: Project) => void;
   setEvents: (events: CaptureEvent[]) => void;
+  setRepoAnalysis: (repoAnalysis: RepoAnalysisStatus | null) => void;
+  setVideoReadiness: (videoReadiness: VideoReadiness | null) => void;
   addEvent: (event: CaptureEvent) => void;
   selectEvent: (eventId: string | null) => void;
   setConnected: (isConnected: boolean) => void;
@@ -33,6 +44,8 @@ export const useAppStore = create<AppState>((set) => ({
   error: null,
   theme: "light",
   toasts: [],
+  repoAnalysis: null,
+  videoReadiness: null,
   setProject: (project) => set({ project }),
   setEvents: (events) =>
     set((state) => ({
@@ -52,6 +65,8 @@ export const useAppStore = create<AppState>((set) => ({
       },
     })),
   selectEvent: (selectedEventId) => set({ selectedEventId }),
+  setRepoAnalysis: (repoAnalysis) => set({ repoAnalysis }),
+  setVideoReadiness: (videoReadiness) => set({ videoReadiness }),
   setConnected: (isConnected) => set({ isConnected }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),

@@ -1,14 +1,18 @@
-export type ProjectStatus = "planning" | "active" | "paused" | "complete";
+export type ProjectStatus = "initialized" | "planning" | "active" | "paused" | "complete";
 
 export type Project = {
   name: string;
   summary: string;
   status: ProjectStatus;
+  repositoryPath?: string;
+  primaryLanguage?: string;
+  frameworks?: string[];
   stats: {
     captures: number;
     commits: number;
     decisions: number;
     changes: number;
+    media?: number;
   };
   lastActivity: string;
 };
@@ -76,4 +80,31 @@ export type ToastMessage = {
   title: string;
   detail?: string;
   tone: "success" | "error" | "info";
+};
+
+export type RepoAnalysisStatus = {
+  projectPath: string;
+  projectName: string;
+  brainIsEmpty: boolean;
+  hasRepoContext: boolean;
+  shouldAskForConsent: boolean;
+  fileCount: number;
+  analyzableFileCount: number;
+  analyzedFileCount: number;
+  skippedFileCount: number;
+  primaryLanguage?: string;
+  languages: string[];
+  frameworks: string[];
+  summary: string;
+  recommendations: string[];
+};
+
+export type VideoReadiness = {
+  canGenerate: boolean;
+  hasSnapshots: boolean;
+  screenshotCount: number;
+  hasNarrativeContext: boolean;
+  repoAnalysisDone: boolean;
+  requiresRuntimeSnapshots: boolean;
+  recommendation: string;
 };
