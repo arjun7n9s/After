@@ -59,7 +59,18 @@ export const useAppStore = create<AppState>((set) => ({
         ...state.project,
         stats: {
           ...state.project.stats,
-          captures: state.project.stats.captures + 1,
+          captures: event.type === "git:commit"
+            ? state.project.stats.captures + 1
+            : state.project.stats.captures,
+          changes: isFileEvent(event.type)
+            ? state.project.stats.changes + 1
+            : state.project.stats.changes,
+          commits: event.type === "git:commit"
+            ? state.project.stats.commits + 1
+            : state.project.stats.commits,
+          commitActivity: event.type === "git:commit"
+            ? incrementLatestActivityBucket(state.project.stats.commitActivity)
+            : state.project.stats.commitActivity,
         },
         lastActivity: event.timestamp,
       },
@@ -83,3 +94,18 @@ export const useAppStore = create<AppState>((set) => ({
       toasts: state.toasts.filter((toast) => toast.id !== toastId),
     })),
 }));
+
+const isFileEvent = (type: CaptureEvent["type"]): boolean =>
+  type === "file:added" || type === "file:changed" || type === "file:deleted";
+
+const incrementLatestActivityBucket = (activity: number[] | undefined): number[] => {
+  const buckets = activity?.length
+    ? activity.slice(-14)
+    : Array.from({ length: 14 }, () => 0);
+  const normalized = [
+    ...Array.from({ length: Math.max(0, 14 - buckets.length) }, () => 0),
+    ...buckets,
+  ];
+  normalized[normalized.length - 1] = (normalized.at(-1) ?? 0) + 1;
+  return normalized;
+};

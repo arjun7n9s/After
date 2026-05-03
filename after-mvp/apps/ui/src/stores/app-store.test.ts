@@ -32,7 +32,34 @@ describe("useAppStore", () => {
     const state = useAppStore.getState();
     expect(state.events[0]).toEqual(event);
     expect(state.project.lastActivity).toBe(event.timestamp);
+    expect(state.project.stats.captures).toBe(fallbackProject.stats.captures);
+    expect(state.project.stats.changes).toBe(fallbackProject.stats.changes + 1);
+  });
+
+  it("updates commit stats from live git events", () => {
+    const event: CaptureEvent = {
+      id: "commit-event",
+      type: "git:commit",
+      title: "Commit: demo",
+      summary: "A developer committed changes",
+      timestamp: new Date().toISOString(),
+    };
+
+    useAppStore.setState({
+      project: {
+        ...fallbackProject,
+        stats: {
+          ...fallbackProject.stats,
+          commitActivity: Array.from({ length: 14 }, () => 0),
+        },
+      },
+    });
+    useAppStore.getState().addEvent(event);
+
+    const state = useAppStore.getState();
+    expect(state.project.stats.commits).toBe(fallbackProject.stats.commits + 1);
     expect(state.project.stats.captures).toBe(fallbackProject.stats.captures + 1);
+    expect(state.project.stats.commitActivity?.at(-1)).toBe(1);
   });
 
   it("sets ui state and manages toast messages", () => {

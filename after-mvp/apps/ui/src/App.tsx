@@ -48,7 +48,14 @@ function App() {
   useEffect(() => {
     void refreshData();
 
-    const unsubscribe = webSocketService.on(addEvent);
+    let refreshTimeout: number | undefined;
+    const unsubscribe = webSocketService.on((event) => {
+      addEvent(event);
+      window.clearTimeout(refreshTimeout);
+      refreshTimeout = window.setTimeout(() => {
+        void refreshData();
+      }, 750);
+    });
     webSocketService.connect();
     const intervalId = window.setInterval(() => {
       setConnected(webSocketService.isConnected());
@@ -56,6 +63,7 @@ function App() {
 
     return () => {
       unsubscribe();
+      window.clearTimeout(refreshTimeout);
       window.clearInterval(intervalId);
       webSocketService.disconnect();
     };
