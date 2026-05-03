@@ -14,6 +14,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { LoadingSkeleton } from "@/components/LoadingSkeleton";
+import { fallbackProject } from "@/data/mock-data";
 import {
   ActivityHeatmap,
   SegmentedRing,
@@ -61,7 +62,8 @@ export function Dashboard() {
   const [isPreparingVideo, setPreparingVideo] = useState(false);
   const navigate = useNavigate();
 
-  const recentEvents = events.slice(0, 5);
+  const displayProject = project ?? fallbackProject;
+  const recentEvents = (events ?? []).slice(0, 5);
 
   const refreshDashboardData = async () => {
     const [nextProject, nextEvents, nextRepoAnalysis, nextVideoReadiness] =
@@ -79,12 +81,14 @@ export function Dashboard() {
 
   const handleGenerateReadme = async () => {
     try {
-      await apiService.generateReadme();
+      const result = await apiService.generateReadme();
+      await refreshDashboardData();
       addToast({
         tone: "success",
         title: "README generated",
-        detail: "The backend returned a generated README draft.",
+        detail: `${result.fileName || "README.generated.md"} was written to outputs.`,
       });
+      navigate("/files");
     } catch {
       addToast({
         tone: "info",
@@ -135,10 +139,11 @@ export function Dashboard() {
       await refreshDashboardData();
       addToast({
         tone: "success",
-        title: "Video assets prepared",
+        title: "Demo video rendered",
         detail:
-          "Storyboard, script, captions, and sources were written to the project outputs folder.",
+          "demo_video.mp4 plus script, captions, storyboard, and sources were written to outputs.",
       });
+      navigate("/files");
     } catch {
       addToast({
         tone: "error",
@@ -189,7 +194,7 @@ export function Dashboard() {
                   style={{ background: "var(--accent)" }}
                 />
               </span>
-              {project.status}
+              {displayProject.status}
             </p>
 
             <h2
@@ -203,13 +208,13 @@ export function Dashboard() {
                 backgroundClip: "text",
               }}
             >
-              {project.name}
+              {displayProject.name}
             </h2>
             <p
               className="mt-3 max-w-2xl text-sm leading-relaxed"
               style={{ color: "var(--ink-soft)" }}
             >
-              {project.summary}
+              {displayProject.summary}
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -239,12 +244,12 @@ export function Dashboard() {
                     className="font-mono text-3xl font-bold"
                     style={{ color: "var(--ink)", letterSpacing: "-0.05em" }}
                   >
-                    {project.stats.captures}
+                    {displayProject.stats.captures}
                   </span>
                   <div className="h-6 w-16 opacity-80">
                     <Sparkline
                       color="var(--success)"
-                      data={[2, 5, 3, 8, 4, 12, project.stats.captures]}
+                      data={[2, 5, 3, 8, 4, 12, displayProject.stats.captures]}
                     />
                   </div>
                 </div>
@@ -276,7 +281,7 @@ export function Dashboard() {
                     className="font-mono text-3xl font-bold"
                     style={{ color: "var(--ink)", letterSpacing: "-0.05em" }}
                   >
-                    {project.stats.commits}
+                    {displayProject.stats.commits}
                   </span>
                   <div className="opacity-80">
                     <ActivityHeatmap color="#c87d42" />
@@ -310,7 +315,7 @@ export function Dashboard() {
                     className="font-mono text-3xl font-bold"
                     style={{ color: "var(--ink)", letterSpacing: "-0.05em" }}
                   >
-                    {project.stats.decisions}
+                    {displayProject.stats.decisions}
                   </span>
                   <div className="h-6 w-6 opacity-90">
                     <SegmentedRing color="#7a5e4b" percentage={75} />
@@ -344,7 +349,7 @@ export function Dashboard() {
                     className="font-mono text-3xl font-bold"
                     style={{ color: "var(--ink)", letterSpacing: "-0.05em" }}
                   >
-                    {project.stats.changes}
+                    {displayProject.stats.changes}
                   </span>
                   <span
                     className="font-mono text-xs font-semibold opacity-50"
@@ -373,7 +378,7 @@ export function Dashboard() {
                 Connected repo
               </span>
               <span className="min-w-0 truncate">
-                {project.repositoryPath ||
+                {displayProject.repositoryPath ||
                   repoAnalysis?.projectPath ||
                   "Start the API with a project folder"}
               </span>
@@ -408,10 +413,10 @@ export function Dashboard() {
           />
           <ActionButton
             Icon={Video}
-            title={isPreparingVideo ? "Preparing..." : "Video Assets"}
+            title={isPreparingVideo ? "Rendering..." : "Generate Demo Video"}
             detail={
               videoReadiness?.canGenerate
-                ? "Storyboard ready"
+                ? "Creates MP4"
                 : "Needs snapshots"
             }
             onClick={handlePrepareVideo}

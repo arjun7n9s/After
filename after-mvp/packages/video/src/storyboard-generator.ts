@@ -2,8 +2,11 @@ import { BrainReader, type BrainSource } from "@after/core";
 
 export type StoryboardSceneKind =
   | "title"
+  | "launch"
   | "problem"
   | "architecture"
+  | "brain"
+  | "outputs"
   | "decision"
   | "timeline"
   | "closing";
@@ -61,52 +64,92 @@ export class StoryboardGenerator {
     const tone = options.tone ?? "pitch";
     const screenshots = media.filter((item) => item.type === "screenshot");
     const primaryScreenshot = screenshots.at(-1);
+    const topComponents = architecture.components
+      .slice(0, 4)
+      .map((component) => component.name);
+    const workflowBullets = [
+      "Open a working repo",
+      "Launch After",
+      "Understand the project",
+      "Generate outputs",
+    ];
     const scenes: StoryboardScene[] = [
       {
         id: "scene-title",
         kind: "title",
-        title: overview.projectName,
-        narration:
-          overview.summary ||
-          `${overview.projectName} is being captured through After's local Project Brain.`,
+        title: `Demo: ${overview.projectName}`,
+        narration: `A developer opens ${overview.projectName} and uses After to turn the project folder into a clear demo story.`,
         durationSeconds: 6,
         sources: [{ path: "overview.md" }],
         visual: {
           heading: overview.projectName,
-          bullets: [overview.status, ...overview.frameworks].filter(Boolean),
+          bullets: workflowBullets,
           accent: accents[0],
           mediaPath: primaryScreenshot?.path,
           mediaCaption: primaryScreenshot?.caption,
         },
       },
       {
-        id: "scene-problem",
-        kind: "problem",
-        title: "Problem",
-        narration: intent.problem || "The Project Brain has not captured a problem statement yet.",
+        id: "scene-launch",
+        kind: "launch",
+        title: "Launch After in the repo",
+        narration: `From the terminal, the developer starts After against the current project folder. The dashboard opens already connected to ${overview.repositoryPath || "the selected repository"}.`,
         durationSeconds: 8,
-        sources: [{ path: "intent.md" }],
+        sources: [{ path: "overview.md" }],
         visual: {
-          heading: "Problem",
-          bullets: intent.goals.slice(0, 4),
+          heading: "Connected workspace",
+          bullets: [
+            overview.repositoryPath || "Selected project folder",
+            overview.primaryLanguage || "Detected source files",
+            ...overview.frameworks.slice(0, 2),
+          ].filter(Boolean),
           accent: accents[1],
+        },
+      },
+      {
+        id: "scene-understand",
+        kind: "brain",
+        title: "Understand the project",
+        narration: `The developer clicks Understand Repo. After reads source files, package manifests, docs, routes, commands, and configuration through privacy filters, then fills the local Project Brain with cited context.`,
+        durationSeconds: 9,
+        sources: [{ path: "architecture.md" }, { path: "entities.json" }],
+        visual: {
+          heading: "Project Brain",
+          bullets: [
+            `${architecture.components.length} architecture areas`,
+            `${journey.length} timeline entries`,
+            `${decisions.length} decisions captured`,
+            ...topComponents,
+          ],
+          accent: accents[2],
         },
       },
       {
         id: "scene-architecture",
         kind: "architecture",
-        title: "Architecture",
+        title: "Navigate the repo map",
         narration:
           architecture.overview ||
-          "The architecture summary will become richer as the Project Brain is updated.",
-        durationSeconds: 9,
+          "After converts the repository structure into a practical map the developer can use for chat, documentation, and demo generation.",
+        durationSeconds: 8,
         sources: [{ path: "architecture.md" }],
         visual: {
-          heading: "Architecture",
-          bullets: architecture.components.map(
-            (component) => `${component.name}: ${component.responsibility}`,
-          ),
-          accent: accents[2],
+          heading: "Repo map",
+          bullets: architecture.dataFlow.slice(0, 4),
+          accent: accents[3],
+        },
+      },
+      {
+        id: "scene-outputs",
+        kind: "outputs",
+        title: "Generate demo-ready outputs",
+        narration: `With context loaded, the developer generates a polished README, browses the files page, and renders a demo video backed by the same captured evidence.`,
+        durationSeconds: 8,
+        sources: [{ path: "overview.md" }, { path: "journey.md" }],
+        visual: {
+          heading: "Outputs",
+          bullets: ["README.generated.md", "demo_script.md", "demo_video.mp4", "cited Project Brain sources"],
+          accent: accents[4],
         },
       },
     ];
@@ -124,7 +167,9 @@ export class StoryboardGenerator {
           : [{ path: "decisions.md" }],
         visual: {
           heading: "Key Decision",
-          bullets: latestDecision.consequences.slice(0, 4),
+          bullets: latestDecision.consequences.length
+            ? latestDecision.consequences.slice(0, 4)
+            : ["Decision captured with local citations"],
           accent: accents[3],
         },
       });
@@ -135,7 +180,7 @@ export class StoryboardGenerator {
         id: `scene-journey-${entry.id}`,
         kind: "timeline",
         title: entry.title,
-        narration: entry.narrative,
+        narration: `The timeline keeps the demo grounded in real work: ${entry.narrative}`,
         durationSeconds: 7,
         sources: entry.sources.length ? entry.sources : [{ path: "journey.md" }],
         visual: {
@@ -175,11 +220,11 @@ export class StoryboardGenerator {
   private getClosingNarration(tone: StoryboardTone): string {
     const narrationByTone: Record<StoryboardTone, string> = {
       technical:
-        "After packages captured memory, retrieval, citations, outputs, and video scenes into one local-first pipeline.",
+        "The demo is ready: the repository is understood, the Project Brain is cited, and the generated assets are available from the Files page.",
       pitch:
-        "After turns captured development context into cited outputs and demo-ready storytelling for a polished submission.",
+        "Instead of explaining the project from scratch, the developer can now show a working dashboard, a professional README, and a rendered demo video.",
       journey:
-        "After preserves the path from first idea to final demo, making the development journey easy to share.",
+        "After preserves the path from repository context to shareable demo, so the story follows the actual work.",
     };
 
     return narrationByTone[tone];

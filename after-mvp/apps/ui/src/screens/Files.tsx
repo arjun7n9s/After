@@ -41,6 +41,7 @@ const kindLabel: Record<GeneratedFileKind, string> = {
 
 export function Files() {
   const [files, setFiles] = useState<GeneratedFile[]>([]);
+  const [outputRoot, setOutputRoot] = useState<string | undefined>();
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [content, setContent] = useState<GeneratedFileContent | null>(null);
   const [isLoading, setLoading] = useState(true);
@@ -56,8 +57,10 @@ export function Files() {
     setLoading(true);
     setError(null);
     try {
-      const nextFiles = await apiService.getGeneratedFiles();
+      const listing = await apiService.getGeneratedFiles();
+      const nextFiles = listing.files;
       setFiles(nextFiles);
+      setOutputRoot(listing.root);
       setSelectedPath((currentPath) => {
         if (currentPath && nextFiles.some((file) => file.path === currentPath)) return currentPath;
         return nextFiles[0]?.path ?? null;
@@ -110,6 +113,11 @@ export function Files() {
             <p className="text-[11px]" style={{ color: "var(--ink-muted)" }}>
               {files.length} asset{files.length === 1 ? "" : "s"} in outputs
             </p>
+            {outputRoot && (
+              <p className="mt-1 max-w-[220px] truncate text-[10px]" style={{ color: "var(--ink-soft)" }}>
+                {outputRoot}
+              </p>
+            )}
           </div>
           <button
             type="button"

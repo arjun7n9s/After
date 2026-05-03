@@ -5,6 +5,7 @@ import type {
   ChatProgressEvent,
   ChatResponse,
   GeneratedFile,
+  GeneratedFilesListing,
   GeneratedFileContent,
   Project,
   RepoAnalysisStatus,
@@ -85,6 +86,15 @@ type BobFilesResponse = {
   data?: {
     root?: string;
     files?: GeneratedFile[];
+  };
+};
+
+type BobGeneratedOutputResponse = {
+  success: boolean;
+  data?: {
+    content?: string;
+    outputPath?: string;
+    fileName?: string;
   };
 };
 
@@ -171,11 +181,15 @@ class ApiService {
     }
   }
 
-  async generateReadme(): Promise<string> {
+  async generateReadme(): Promise<{ content: string; outputPath?: string; fileName?: string }> {
     const response = await this.request("/api/bob/readme", { method: "POST" });
     if (!response.ok) throw new Error(`README generation failed: ${response.status}`);
-    const payload = (await response.json()) as { data?: { content?: string } };
-    return payload.data?.content || "";
+    const payload = (await response.json()) as BobGeneratedOutputResponse;
+    return {
+      content: payload.data?.content || "",
+      outputPath: payload.data?.outputPath,
+      fileName: payload.data?.fileName,
+    };
   }
 
   async prepareVideoAssets(): Promise<void> {
@@ -322,14 +336,17 @@ class ApiService {
     }
   }
 
-  async getGeneratedFiles(): Promise<GeneratedFile[]> {
+  async getGeneratedFiles(): Promise<GeneratedFilesListing> {
     try {
       const response = await this.request("/api/bob/files");
       if (!response.ok) throw new Error(`Generated files request failed: ${response.status}`);
       const payload = (await response.json()) as BobFilesResponse;
-      return payload.success ? payload.data?.files ?? [] : [];
+      return {
+        root: payload.data?.root,
+        files: payload.success ? payload.data?.files ?? [] : [],
+      };
     } catch {
-      return [];
+      return { files: [] };
     }
   }
 

@@ -129,6 +129,11 @@ export type GeneratedFile = {
   previewable: boolean;
 };
 
+export type GeneratedFilesListing = {
+  root?: string;
+  files: GeneratedFile[];
+};
+
 export type GeneratedFileContent = {
   path: string;
   name: string;

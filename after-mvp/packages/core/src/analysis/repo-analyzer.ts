@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname, join, relative } from "node:path";
+import simpleGit from "simple-git";
 
 import { PrivacyFilter } from "../privacy/filter";
 import { BrainReader } from "../memory/brain-reader";
@@ -48,6 +49,16 @@ type PackageJson = {
   dependencies?: Record<string, string>;
   devDependencies?: Record<string, string>;
   workspaces?: string[] | { packages?: string[] };
+};
+
+type RepositoryModel = {
+  packages: Array<{ name: string; path: string; scripts: string[]; technologies: string[] }>;
+  scripts: Array<{ name: string; command: string; source: string }>;
+  modules: Array<{ name: string; fileCount: number; samplePath: string; purpose: string }>;
+  uiRoutes: Array<{ route: string; source: string }>;
+  apiRoutes: Array<{ method: string; route: string; source: string }>;
+  configFiles: string[];
+  docs: string[];
 };
 
 const ignoredDirectories = new Set([
@@ -165,8 +176,9 @@ export class RepoAnalyzer {
     const frameworks = this.detectFrameworks(packageFiles);
     const components = this.detectComponents(files.scanned, packageFiles);
     const scripts = this.detectScripts(packageFiles);
+    const repositoryModel = this.createRepositoryModel(files.scanned, packageFiles, components);
     const now = new Date();
-    const summary = this.createBrainSummary(files.scanned, frameworks, languages, components);
+    const summary = this.createBrainSummary(files.scanned, frameworks, languages, components, repositoryModel);
     const updatedOverview: Overview = {
       ...currentOverview,
       metadata: { ...currentOverview.metadata, updatedAt: now.toISOString() },
@@ -183,34 +195,33 @@ export class RepoAnalyzer {
         "Keep a local, cited Project Brain that understands the repository and can power summaries, chat, and demo assets.",
       goals: unique([
         ...currentIntent.goals,
-        "Understand the repository structure from local files.",
-        "Keep generated context cited back to source files.",
-        "Prepare demo-ready outputs from the Project Brain.",
+        "Open any working repository and connect After to that folder.",
+        "Build a local Project Brain from source files, manifests, docs, routes, and commands.",
+        "Generate cited README, chat context, and demo video assets from the captured evidence.",
       ]),
       successCriteria: unique([
         ...currentIntent.successCriteria,
-        "Dashboard shows the connected repository and captured context.",
-        "Project Brain search and chat can cite scanned files.",
+        "Dashboard shows the connected repository, commands, routes, modules, and generated assets.",
+        "Project Brain search, README generation, and demo video scripts cite scanned files.",
       ]),
     };
     const updatedArchitecture: Architecture = {
       ...currentArchitecture,
       metadata: { ...currentArchitecture.metadata, updatedAt: now.toISOString() },
-      overview:
-        currentArchitecture.overview ||
-        `The repository is organized around ${components
-          .slice(0, 3)
-          .map((component) => component.name)
-          .join(", ") || "the detected source tree"}.`,
+      overview: this.createArchitectureOverview(repositoryModel, components),
       components,
       dataFlow: unique([
         ...currentArchitecture.dataFlow,
-        "Local files are scanned through privacy filters before Project Brain files are updated.",
-        "The dashboard reads Project Brain status, events, chat context, and video readiness from the API.",
+        "A developer launches After inside a project folder and opens the local dashboard URL.",
+        "The repository scanner applies privacy filters, reads manifests, docs, source modules, UI routes, API routes, and environment hints, then writes cited Project Brain files.",
+        "Dashboard, chat, README generation, Files, and video rendering read from the Project Brain and outputs directory.",
+        ...repositoryModel.uiRoutes.slice(0, 5).map((route) => `UI route ${route.route} is implemented in ${route.source}.`),
+        ...repositoryModel.apiRoutes.slice(0, 5).map((route) => `API ${route.method} ${route.route} is implemented in ${route.source}.`),
       ]),
       risks: unique([
         ...currentArchitecture.risks,
         "Generated context depends on the files the user allows After to inspect.",
+        "LLM-enhanced outputs require IBM Pro/watsonx credentials; otherwise After uses deterministic local analysis.",
       ]),
     };
     const analysisChange: ChangeEntry = {
@@ -218,7 +229,7 @@ export class RepoAnalyzer {
       date: now.toISOString(),
       type: "documented",
       summary: "Repository context analyzed into Project Brain",
-      details: `Scanned ${files.scanned.length} files and detected ${frameworks.length || 0} framework signal(s).`,
+      details: `Scanned ${files.scanned.length} files, ${repositoryModel.packages.length} package manifest(s), ${repositoryModel.modules.length} module area(s), ${repositoryModel.uiRoutes.length} UI route(s), and ${repositoryModel.apiRoutes.length} API route(s).`,
       sources: files.scanned.slice(0, 8).map((file) => ({ path: file.path })),
     };
     const analysisJourney: JourneyEntry = {
@@ -226,7 +237,7 @@ export class RepoAnalyzer {
       timestamp: now.toISOString(),
       kind: "milestone",
       title: "Repository context understood",
-      narrative: `After read the configured folder, detected ${languages.join(", ") || "source"} context, and refreshed the Project Brain.`,
+      narrative: `A developer allowed After to understand this folder. After inspected manifests, docs, source modules, routes, commands, and ${languages.join(", ") || "source"} files, then refreshed the Project Brain with cited context.`,
       sources: analysisChange.sources,
     };
     const entities: Entity[] = uniqueBy(
@@ -237,6 +248,13 @@ export class RepoAnalyzer {
           type: "component" as const,
           description: component.responsibility,
           sources: component.sources,
+        })),
+        ...repositoryModel.modules.map((module) => ({
+          id: slug(`module-${module.name}`),
+          name: module.name,
+          type: "module" as const,
+          description: module.purpose,
+          sources: [{ path: module.samplePath }],
         })),
         ...scripts.map((script) => ({
           id: slug(`command-${script.name}`),
@@ -271,6 +289,18 @@ export class RepoAnalyzer {
         "entities.json",
       ],
     };
+  }
+
+  async getRecentCommitCount(days = 14): Promise<number> {
+    try {
+      const git = simpleGit(this.projectPath);
+      if (!(await git.checkIsRepo())) return 0;
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      const log = await git.log({ "--since": since, maxCount: 100 });
+      return log.all.length;
+    } catch {
+      return 0;
+    }
   }
 
   private async scanFiles(options: { includeContent: boolean }): Promise<{
@@ -415,6 +445,88 @@ export class RepoAnalyzer {
     return uniqueBy([...packageComponents, ...directoryComponents], (component) => component.name).slice(0, 20);
   }
 
+  private createRepositoryModel(
+    files: ScannedFile[],
+    packageFiles: Array<{ path: string; data: PackageJson }>,
+    components: ArchitectureComponent[],
+  ): RepositoryModel {
+    const scripts = this.detectScripts(packageFiles);
+    const packages = packageFiles.map((file) => ({
+      name: file.data.name || dirname(file.path),
+      path: file.path,
+      scripts: Object.keys(file.data.scripts ?? {}),
+      technologies: this.detectFrameworks([{ data: file.data }]),
+    }));
+    const modules = components
+      .filter((component) => !component.sources[0]?.path.endsWith("package.json"))
+      .slice(0, 12)
+      .map((component) => ({
+        name: component.name,
+        fileCount: Number(component.responsibility.match(/(\d+) analyzed/)?.[1] ?? 0),
+        samplePath: component.sources[0]?.path ?? component.name,
+        purpose: this.describeModule(component.name, files),
+      }));
+    const uiRoutes = this.detectUiRoutes(files);
+    const apiRoutes = this.detectApiRoutes(files);
+    const configFiles = files
+      .map((file) => file.path)
+      .filter((path) => /(^|\/)(\.env\.example|vite\.config|tsconfig|turbo\.json|eslint\.config|tailwind\.config|package\.json)$/i.test(path))
+      .slice(0, 20);
+    const docs = files
+      .map((file) => file.path)
+      .filter((path) => /\.md$/i.test(path) && !path.startsWith("brain/"))
+      .slice(0, 20);
+
+    return { packages, scripts, modules, uiRoutes, apiRoutes, configFiles, docs };
+  }
+
+  private detectUiRoutes(files: ScannedFile[]): RepositoryModel["uiRoutes"] {
+    const routes: RepositoryModel["uiRoutes"] = [];
+    for (const file of files) {
+      if (!/\.(tsx|jsx)$/.test(file.extension) || !file.content) continue;
+      const matches = [...file.content.matchAll(/<Route[^>]+path=["']([^"']+)["']/g)];
+      for (const match of matches) {
+        routes.push({ route: match[1] || "/", source: file.path });
+      }
+    }
+    return uniqueBy(routes, (route) => `${route.route}:${route.source}`).slice(0, 30);
+  }
+
+  private detectApiRoutes(files: ScannedFile[]): RepositoryModel["apiRoutes"] {
+    const routes: RepositoryModel["apiRoutes"] = [];
+    const routePattern = /\.(get|post|put|patch|delete)\(\s*["']([^"']+)["']/g;
+    for (const file of files) {
+      if (!/\.(ts|js|tsx|jsx)$/.test(file.extension) || !file.content) continue;
+      const matches = [...file.content.matchAll(routePattern)];
+      for (const match of matches) {
+        routes.push({
+          method: (match[1] || "use").toUpperCase(),
+          route: match[2] || "/",
+          source: file.path,
+        });
+      }
+    }
+    return uniqueBy(routes, (route) => `${route.method}:${route.route}:${route.source}`).slice(0, 40);
+  }
+
+  private describeModule(moduleName: string, files: ScannedFile[]): string {
+    const moduleFiles = files.filter((file) => file.path.startsWith(`${moduleName}/`));
+    const names = moduleFiles.map((file) => basename(file.path).toLowerCase());
+    if (names.some((name) => name.includes("screen") || name.includes("component"))) {
+      return `${moduleName} contains user-facing UI screens and reusable interface components.`;
+    }
+    if (names.some((name) => name.includes("route") || name.includes("server") || name.includes("api"))) {
+      return `${moduleName} contains server/API code for local dashboard and Project Brain workflows.`;
+    }
+    if (names.some((name) => name.includes("generator") || name.includes("template"))) {
+      return `${moduleName} contains generation logic for polished project outputs.`;
+    }
+    if (names.some((name) => name.includes("test") || name.includes("spec"))) {
+      return `${moduleName} includes implementation and test coverage for this repository area.`;
+    }
+    return `${moduleName} is a repository area with ${moduleFiles.length} analyzed source/documentation file(s).`;
+  }
+
   private detectScripts(packageFiles: Array<{ path: string; data: PackageJson }>): Array<{
     name: string;
     command: string;
@@ -442,10 +554,28 @@ export class RepoAnalyzer {
     frameworks: string[],
     languages: string[],
     components: ArchitectureComponent[],
+    repositoryModel: RepositoryModel,
   ): string {
     const stack = [...frameworks, ...languages].slice(0, 5).join(", ");
     const componentNames = components.slice(0, 5).map((component) => component.name).join(", ");
-    return `After analyzed ${files.length} repository files${stack ? ` across ${stack}` : ""}${componentNames ? `, including ${componentNames}` : ""}.`;
+    const workflowSignals = [
+      repositoryModel.scripts.length ? `${repositoryModel.scripts.length} npm script(s)` : "",
+      repositoryModel.uiRoutes.length ? `${repositoryModel.uiRoutes.length} UI route(s)` : "",
+      repositoryModel.apiRoutes.length ? `${repositoryModel.apiRoutes.length} API route(s)` : "",
+      repositoryModel.docs.length ? `${repositoryModel.docs.length} doc file(s)` : "",
+    ].filter(Boolean).join(", ");
+    return `After connected to this repository and built a local Project Brain from ${files.length} source and documentation files${stack ? ` across ${stack}` : ""}${componentNames ? `, including ${componentNames}` : ""}${workflowSignals ? `. It detected ${workflowSignals}` : ""}.`;
+  }
+
+  private createArchitectureOverview(
+    repositoryModel: RepositoryModel,
+    components: ArchitectureComponent[],
+  ): string {
+    const componentNames = components.slice(0, 4).map((component) => component.name).join(", ");
+    const packageSummary = repositoryModel.packages.length
+      ? `${repositoryModel.packages.length} package manifest(s)`
+      : "the detected source tree";
+    return `The project is organized around ${componentNames || packageSummary}. After identified ${packageSummary}, ${repositoryModel.modules.length} module area(s), ${repositoryModel.uiRoutes.length} UI route(s), ${repositoryModel.apiRoutes.length} API route(s), ${repositoryModel.configFiles.length} config/env file(s), and ${repositoryModel.docs.length} documentation file(s).`;
   }
 
   private createRecommendations(brainIsEmpty: boolean, fileCount: number): string[] {

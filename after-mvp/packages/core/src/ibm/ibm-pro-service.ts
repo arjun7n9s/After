@@ -143,6 +143,8 @@ Required structure:
 - Project name and a concrete one-paragraph summary
 - What the project does, with specific capabilities found in the context
 - Architecture, naming important apps, packages, services, data stores, and generated outputs when known
+- A Mermaid flowchart that shows repository -> Project Brain -> dashboard/chat/generated files/demo video
+- A compact architecture table with area, responsibility, technology, and source
 - Getting started, including environment variables and commands only when the context supports them
 - Key workflows, such as repo analysis, generated files, README/changelog/journey/abstract creation, and video/demo generation if present
 - Generated assets and where to find them

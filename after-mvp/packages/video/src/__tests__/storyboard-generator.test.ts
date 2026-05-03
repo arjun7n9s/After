@@ -77,8 +77,10 @@ describe("StoryboardGenerator", () => {
     expect(storyboard.tone).toBe("journey");
     expect(storyboard.totalDurationSeconds).toBeGreaterThan(0);
     expect(storyboard.scenes.map((scene) => scene.kind)).toEqual(
-      expect.arrayContaining(["title", "problem", "architecture", "decision", "closing"]),
+      expect.arrayContaining(["title", "launch", "brain", "architecture", "outputs", "decision", "closing"]),
     );
+    expect(storyboard.scenes[0]?.narration).toContain("developer opens");
+    expect(storyboard.scenes.find((scene) => scene.kind === "outputs")?.visual.bullets).toContain("demo_video.mp4");
     expect(storyboard.scenes.every((scene) => scene.sources.length > 0)).toBe(true);
     expect(storyboard.scenes[0]?.visual.mediaPath).toBe(
       "brain/captures/screenshots/dashboard.png",

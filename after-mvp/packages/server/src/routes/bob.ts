@@ -202,6 +202,7 @@ export const createBobRouter = (projectPath: string) => {
         const commitEntries = journey.filter((entry) =>
           entry.title.toLowerCase().startsWith("commit:"),
         );
+        const recentCommitCount = await repoAnalyzer.getRecentCommitCount(14);
 
         res.json({
           success: true,
@@ -217,7 +218,7 @@ export const createBobRouter = (projectPath: string) => {
               decisions: decisions.length,
               changes: changelog.length,
               journeyEntries: journey.length,
-              commits: commitEntries.length,
+              commits: Math.max(commitEntries.length, recentCommitCount),
               media: media.length,
             },
           },
@@ -307,7 +308,7 @@ export const createBobRouter = (projectPath: string) => {
             },
           }
         : await new ReadmeGenerator(reader, { projectPath }).generate();
-      await writeGeneratedOutput("README.generated.md", output.content);
+      const outputPath = await writeGeneratedOutput("README.generated.md", output.content);
 
       res.json({
         success: true,
@@ -316,6 +317,8 @@ export const createBobRouter = (projectPath: string) => {
           content: output.content,
           citations: output.citations,
           metadata: output.metadata,
+          outputPath,
+          fileName: "README.generated.md",
         },
       });
     } catch (error) {

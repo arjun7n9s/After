@@ -108,7 +108,11 @@ describe("apiService", () => {
       vi.fn().mockResolvedValue(jsonResponse({ data: { content: "# After" } })),
     );
 
-    await expect(apiService.generateReadme()).resolves.toBe("# After");
+    await expect(apiService.generateReadme()).resolves.toEqual({
+      content: "# After",
+      outputPath: undefined,
+      fileName: undefined,
+    });
   });
 
   it("sends chat requests and reads chat status", async () => {

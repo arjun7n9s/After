@@ -57,14 +57,16 @@ export class ReadmeGenerator extends BaseGenerator {
         ? `- **Frameworks:** ${overview.frameworks.join(", ")}`
         : "",
     ].filter(Boolean);
-    const components = architecture.components
-      .map((component) => {
-        const technologies = component.technologies.length
-          ? `\n\n**Technologies:** ${component.technologies.join(", ")}`
-          : "";
-        return `#### ${component.name}\n\n${component.responsibility}${technologies}`;
-      })
-      .join("\n\n");
+    const componentTable = architecture.components.length
+      ? [
+          "| Area | Responsibility | Technologies | Source |",
+          "| --- | --- | --- | --- |",
+          ...architecture.components.slice(0, 12).map((component) => {
+            const source = component.sources[0]?.path ?? "";
+            return `| ${escapeTableCell(component.name)} | ${escapeTableCell(component.responsibility)} | ${escapeTableCell(component.technologies.join(", ") || "Detected from repo")} | ${source ? `\`${source}\`` : "Project Brain"} |`;
+          }),
+        ].join("\n")
+      : "";
     const generatedAssets = await this.listGeneratedAssets();
     const latestDecision = decisions.at(-1);
     const recentChanges = changelog.slice(-5).map((entry) => {
@@ -85,8 +87,10 @@ export class ReadmeGenerator extends BaseGenerator {
       intent.problem ? ["## Problem", intent.problem].join("\n\n") : "",
       intent.goals.length ? ["## Goals", renderBulletList(intent.goals)].join("\n\n") : "",
       architecture.overview ? ["## Architecture", architecture.overview].join("\n\n") : "",
-      components ? ["### Components", components].join("\n\n") : "",
+      this.renderFlowDiagram(),
+      componentTable ? ["### Architecture Map", componentTable].join("\n\n") : "",
       techStack.length ? ["## Tech Stack", techStack.join("\n")].join("\n\n") : "",
+      this.renderSetupSection(overview.frameworks, generatedAssets),
       [
         "## Core Workflows",
         [
@@ -134,6 +138,50 @@ export class ReadmeGenerator extends BaseGenerator {
     };
   }
 
+  private renderFlowDiagram(): string {
+    return [
+      "### System Flow",
+      "```mermaid",
+      "flowchart LR",
+      "  Repo[Working repository] --> Scan[Privacy-safe repo understanding]",
+      "  Scan --> Brain[Local Project Brain]",
+      "  Brain --> Dashboard[Dashboard and timeline]",
+      "  Brain --> Chat[Context chat]",
+      "  Brain --> Outputs[README, changelog, journey, abstract]",
+      "  Brain --> Video[Demo storyboard and MP4]",
+      "  Outputs --> Files[Generated files browser]",
+      "  Video --> Files",
+      "```",
+    ].join("\n");
+  }
+
+  private renderSetupSection(frameworks: string[], generatedAssets: string[]): string {
+    const commands = [
+      "- `npm install`",
+      "- `npm run build`",
+      "- `npm run launch -- \"C:\\path\\to\\your\\repo\" -p 3030`",
+    ];
+    const envNotes = [
+      "- Copy `.env.example` to `.env` when IBM Pro or custom ports are needed.",
+      "- Set `IBM_PRO_ENABLED=true` plus watsonx credentials to enable LLM-enhanced README/chat generation.",
+      "- Local-only mode still analyzes the repository and generates cited outputs without cloud calls.",
+    ];
+
+    return [
+      "## Getting Started",
+      frameworks.length
+        ? `Detected stack signals: ${frameworks.join(", ")}.`
+        : "The Project Brain did not capture a complete stack list yet.",
+      "### Commands",
+      commands.join("\n"),
+      "### Environment",
+      envNotes.join("\n"),
+      generatedAssets.length
+        ? `Generated assets already found in \`outputs/\`: ${generatedAssets.map((asset) => `\`${asset}\``).join(", ")}.`
+        : "Generated assets will appear in `outputs/` after using the dashboard actions.",
+    ].join("\n\n");
+  }
+
   private async listGeneratedAssets(): Promise<string[]> {
     const outputRoot = join(this.projectPath, "outputs");
 
@@ -156,5 +204,8 @@ export class ReadmeGenerator extends BaseGenerator {
     }
   }
 }
+
+const escapeTableCell = (value: string): string =>
+  value.replace(/\|/g, "\\|").replace(/\n/g, " ").trim();
 
 // Made with Bob
