@@ -18,7 +18,6 @@
     "remotion": "^4.0.286",
     "@remotion/cli": "^4.0.286",
     "@remotion/bundler": "^4.0.286",
-    "@remotion/renderer": "^4.0.286",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "fluent-ffmpeg": "^2.1.3"
