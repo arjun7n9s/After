@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Sequence, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Sequence, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 
 import type { DemoStoryboard, StoryboardScene } from "./storyboard-generator";
 
@@ -18,6 +18,7 @@ const RemotionSequence = Sequence as unknown as React.ComponentType<{
 }>;
 
 export function DemoComposition({ storyboard }: DemoCompositionProps) {
+  const { fps } = useVideoConfig();
   let frameOffset = 0;
 
   return React.createElement(
@@ -25,7 +26,7 @@ export function DemoComposition({ storyboard }: DemoCompositionProps) {
     { style: { backgroundColor: "#f8fafc", color: "#0f172a" } },
     storyboard.scenes.map((scene) => {
       const from = frameOffset;
-      const durationInFrames = scene.durationSeconds * 30;
+      const durationInFrames = Math.round(scene.durationSeconds * fps);
       frameOffset += durationInFrames;
 
       return React.createElement(

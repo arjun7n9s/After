@@ -132,7 +132,27 @@ export class IBMProService {
     }
 
     const prompts = {
-      readme: `Generate a comprehensive README.md file for this project based on the following Project Brain context:\n\n${brainContext}\n\nInclude: project overview, goals, architecture, components, and getting started instructions.`,
+      readme: `You are writing a production-quality README.md for this exact repository, using only the Project Brain context below.
+
+Project Brain context:
+${brainContext}
+
+Write a README that feels like it was prepared by a senior engineer after reading the repo. Avoid generic filler and marketing copy. Do not invent services, commands, endpoints, or features that are not supported by the context. If a command or setup detail is unknown, say what still needs to be confirmed.
+
+Required structure:
+- Project name and a concrete one-paragraph summary
+- What the project does, with specific capabilities found in the context
+- Architecture, naming important apps, packages, services, data stores, and generated outputs when known
+- Getting started, including environment variables and commands only when the context supports them
+- Key workflows, such as repo analysis, generated files, README/changelog/journey/abstract creation, and video/demo generation if present
+- Generated assets and where to find them
+- Current limitations or open questions
+- Sources, citing the Project Brain files or entries that informed the README
+
+Style rules:
+- Use clear Markdown headings and compact paragraphs.
+- Prefer precise bullets over broad claims.
+- Make it useful for a new contributor opening the repo today.`,
       changelog: `Generate a CHANGELOG.md file from the following Project Brain context:\n\n${brainContext}\n\nGroup changes by date and use conventional commit icons (✨ added, 🔧 changed, 🐛 fixed, 🗑️ removed, 📝 documented).`,
       journey: `Generate a development journey report from the following Project Brain context:\n\n${brainContext}\n\nCreate a narrative timeline of key moments, decisions, and milestones.`,
       abstract: `Generate an HTML abstract/summary page for this project based on the following Project Brain context:\n\n${brainContext}\n\nInclude: overview, problem statement, goals, architecture, and key statistics.`,

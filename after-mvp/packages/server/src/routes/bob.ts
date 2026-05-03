@@ -15,7 +15,7 @@ import {
   ChangelogGenerator,
   JourneyGenerator,
 } from "@after/outputs";
-import { StoryboardGenerator, VideoRenderPlanner } from "@after/video";
+import { StoryboardGenerator, VideoRenderPlanner, renderDemoVideo } from "@after/video";
 import type { StoryboardTone } from "@after/video";
 
 export const createBobRouter = (projectPath: string) => {
@@ -295,8 +295,18 @@ export const createBobRouter = (projectPath: string) => {
    */
   router.post("/readme", async (req, res) => {
     try {
-      const generator = new ReadmeGenerator(reader, { projectPath });
-      const output = await generator.generate();
+      const output = ibmProService.isWatsonxAvailable()
+        ? {
+            ...(await ibmProService.generateOutput(
+              "readme",
+              await buildBrainContext(reader),
+            )),
+            metadata: {
+              generator: "watsonx.ai",
+              generatedAt: new Date().toISOString(),
+            },
+          }
+        : await new ReadmeGenerator(reader, { projectPath }).generate();
       await writeGeneratedOutput("README.generated.md", output.content);
 
       res.json({
@@ -433,7 +443,7 @@ export const createBobRouter = (projectPath: string) => {
 
   /**
    * POST /api/bob/video/render
-   * Prepare demo video render artifacts from Project Brain
+   * Render a demo video and supporting artifacts from Project Brain
    */
   router.post("/video/render", async (req, res) => {
     try {
@@ -451,19 +461,21 @@ export const createBobRouter = (projectPath: string) => {
         width: typeof req.body?.width === "number" ? req.body.width : undefined,
         height: typeof req.body?.height === "number" ? req.body.height : undefined,
       });
+      const renderedVideo = await renderDemoVideo(storyboard, renderPlan);
 
       res.json({
         success: true,
-        message: "Video render artifacts prepared",
+        message: "Video rendered",
         data: {
           storyboard,
           renderPlan,
+          renderedVideo,
         },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to prepare video render artifacts",
+        message: "Failed to render video",
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -1036,6 +1048,7 @@ const listGeneratedFiles = async (root: string): Promise<GeneratedFile[]> => {
       for (const entry of entries) {
         const absolutePath = join(directory, entry.name);
         if (entry.isDirectory()) {
+          if (entry.name.startsWith(".")) continue;
           await visit(absolutePath);
           continue;
         }
@@ -1084,6 +1097,44 @@ const getGeneratedFileKind = (extension: string): GeneratedFile["kind"] => {
   if (extension === ".json") return "json";
   if (extension === ".txt" || extension === ".srt") return "text";
   return "other";
+};
+
+const buildBrainContext = async (reader: BrainReader): Promise<string> => {
+  const [overview, intent, architecture, decisions, changelog, journey, entities] =
+    await Promise.all([
+      reader.readOverview(),
+      reader.readIntent(),
+      reader.readArchitecture(),
+      reader.readDecisions(),
+      reader.readChangelog(),
+      reader.readJourney(),
+      reader.readEntities(),
+    ]);
+
+  return [
+    "# Project Brain Context",
+    "",
+    "## Overview",
+    JSON.stringify(overview, null, 2),
+    "",
+    "## Intent",
+    JSON.stringify(intent, null, 2),
+    "",
+    "## Architecture",
+    JSON.stringify(architecture, null, 2),
+    "",
+    "## Decisions",
+    JSON.stringify(decisions, null, 2),
+    "",
+    "## Changelog",
+    JSON.stringify(changelog.slice(-20), null, 2),
+    "",
+    "## Journey",
+    JSON.stringify(journey.slice(-20), null, 2),
+    "",
+    "## Entities",
+    JSON.stringify(entities.slice(0, 40), null, 2),
+  ].join("\n");
 };
 
 // Made with Bob
