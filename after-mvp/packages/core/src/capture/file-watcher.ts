@@ -1,6 +1,7 @@
 import chokidar, { type FSWatcher } from "chokidar";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { relative } from "node:path";
 import { EventBus, type FileChangeEvent } from "./event-bus";
 import { PrivacyFilter } from "../privacy/filter";
 import { TrustLogger } from "../privacy/trust-logger";
@@ -16,13 +17,14 @@ export type FileWatcherOptions = {
 };
 
 const defaultIgnoredPatterns = [
-  "**/node_modules/**",
-  "**/.git/**",
-  "**/dist/**",
-  "**/build/**",
-  "**/coverage/**",
-  "**/.turbo/**",
-  "**/brain/**",
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  "coverage",
+  ".turbo",
+  "brain",
+  "outputs",
 ];
 
 /**
@@ -62,8 +64,7 @@ export class FileWatcher {
     // Initialize privacy filter
     await this.privacyFilter.initialize();
 
-    const defaultOptions: FileWatcherOptions = {
-      ignored: defaultIgnoredPatterns,
+    const defaultOptions: Omit<FileWatcherOptions, "ignored"> = {
       ignoreInitial: true,
       persistent: true,
       awaitWriteFinish: {
@@ -75,7 +76,7 @@ export class FileWatcher {
     const watchOptions = {
       ...defaultOptions,
       ...options,
-      ignored: [...defaultIgnoredPatterns, ...(options.ignored || [])],
+      ignored: (path: string) => this.shouldIgnorePath(path, options.ignored || []),
     };
 
     // Create watcher
@@ -271,6 +272,18 @@ export class FileWatcher {
    */
   private handleError(error: Error): void {
     console.error("FileWatcher error:", error);
+  }
+
+  private shouldIgnorePath(filePath: string, extraIgnored: string[]): boolean {
+    const relativePath = relative(this.projectPath, filePath)
+      .replace(/\\/g, "/")
+      .replace(/^\.\//, "");
+    const segments = relativePath.split("/");
+    const ignoredSegments = new Set([...defaultIgnoredPatterns, ...extraIgnored]);
+
+    if (!relativePath || relativePath === ".") return false;
+
+    return segments.some((segment) => ignoredSegments.has(segment));
   }
 
   /**

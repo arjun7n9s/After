@@ -20,6 +20,7 @@ out/
 
 # Local generated Project Brain data
 after-mvp/brain/
+after-mvp/outputs/
 
 # Logs and local system files
 *.log

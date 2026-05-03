@@ -8,6 +8,7 @@ import { createServer as createHttpServer, type Server } from "node:http";
 import { basename, join, resolve } from "node:path";
 import { WebSocketServer } from "ws";
 
+import { CaptureManager, type CaptureEvent } from "@after/core";
 import { initProject } from "./cli/init";
 import { createBobRouter } from "./routes/bob";
 
@@ -88,25 +89,116 @@ const hasProjectBrain = async (projectPath: string): Promise<boolean> => {
 
 const listen = (
   projectPath: string,
-  options: { port: string; serveDashboard?: boolean; initialize?: boolean },
-): void => {
+  options: { port: string; serveDashboard?: boolean; initialize?: boolean; watch?: boolean },
+): Promise<void> => {
   const resolvedProjectPath = resolve(projectPath);
   const app = createServer(resolvedProjectPath, {
     serveDashboard: options.serveDashboard,
   });
   const server = createHttpServer(app);
   const port = Number(options.port);
-  attachWebSocketServer(server);
+  const websocketServer = attachWebSocketServer(server);
+  let captureManager: CaptureManager | null = null;
 
-  server.listen(port, () => {
-    const baseUrl = `http://localhost:${port}`;
-    console.log(`After is running at ${baseUrl}`);
-    console.log(`API health: ${baseUrl}/api/health`);
-    console.log(`Project: ${resolvedProjectPath}`);
-    if (options.initialize) {
-      console.log("Project Brain: ready");
-    }
+  const stopCapture = async () => {
+    if (!captureManager) return;
+    await captureManager.stop();
+    captureManager = null;
+  };
+
+  if (options.watch) {
+    captureManager = new CaptureManager(resolvedProjectPath);
+    captureManager.getEventBus().onAny(async (event) => {
+      const dashboardEvent = toDashboardEvent(event);
+      if (!dashboardEvent) return;
+
+      const payload = JSON.stringify(dashboardEvent);
+      websocketServer.clients.forEach((client) => {
+        if (client.readyState === client.OPEN) {
+          client.send(payload);
+        }
+      });
+    });
+  }
+
+  const shutdown = () => {
+    void stopCapture().finally(() => server.close(() => process.exit(0)));
+  };
+  process.once("SIGINT", shutdown);
+  process.once("SIGTERM", shutdown);
+
+  return new Promise((resolveListen) => {
+    server.listen(port, async () => {
+      const baseUrl = `http://localhost:${port}`;
+      if (captureManager) {
+        await captureManager.start({
+          gitScannerOptions: { pollInterval: 3000 },
+        });
+      }
+
+      console.log(`After is running at ${baseUrl}`);
+      console.log(`API health: ${baseUrl}/api/health`);
+      console.log(`Project: ${resolvedProjectPath}`);
+      console.log(`Repository watcher: ${captureManager?.isActive() ? "active" : "off"}`);
+      if (options.initialize) {
+        console.log("Project Brain: ready");
+      }
+      resolveListen();
+    });
   });
+};
+
+const toDashboardEvent = (event: CaptureEvent) => {
+  const path = typeof event.data.path === "string" ? event.data.path : undefined;
+  const message = typeof event.data.message === "string" ? event.data.message : undefined;
+  const author = typeof event.data.author === "string" ? event.data.author : undefined;
+  const branch = typeof event.data.branch === "string" ? event.data.branch : undefined;
+
+  if (event.type === "file:added") {
+    return {
+      id: event.id,
+      type: "file:added",
+      title: `Added ${path ?? "file"}`,
+      summary: "After captured a new file in the connected repository.",
+      timestamp: event.timestamp,
+      source: path,
+    };
+  }
+
+  if (event.type === "file:changed") {
+    return {
+      id: event.id,
+      type: "file:changed",
+      title: `Changed ${path ?? "file"}`,
+      summary: "After captured a file update in the connected repository.",
+      timestamp: event.timestamp,
+      source: path,
+    };
+  }
+
+  if (event.type === "file:deleted") {
+    return {
+      id: event.id,
+      type: "file:deleted",
+      title: `Deleted ${path ?? "file"}`,
+      summary: "After captured a file removal in the connected repository.",
+      timestamp: event.timestamp,
+      source: path,
+    };
+  }
+
+  if (event.type === "git:commit") {
+    return {
+      id: event.id,
+      type: "git:commit",
+      title: `Commit: ${message ?? "Repository update"}`,
+      summary: `${author ?? "A developer"} committed changes${branch ? ` on ${branch}` : ""}.`,
+      timestamp: event.timestamp,
+      source: typeof event.data.hash === "string" ? event.data.hash : ".git",
+    };
+  }
+
+  return null;
 };
 
 export const attachWebSocketServer = (server: Server): WebSocketServer => {
@@ -170,8 +262,9 @@ export const runCli = async (argv = process.argv): Promise<void> => {
     .argument("[projectPath]", "project path", ".")
     .option("-p, --port <port>", "port", process.env.PORT ?? "3000")
     .description("Start the After API server")
-    .action((projectPath: string, options: { port: string }) => {
-      listen(projectPath, { port: options.port });
+    .option("--watch", "watch files and git commits while the API is running")
+    .action(async (projectPath: string, options: { port: string; watch?: boolean }) => {
+      await listen(projectPath, { port: options.port, watch: Boolean(options.watch) });
     });
 
   program
@@ -190,10 +283,11 @@ export const runCli = async (argv = process.argv): Promise<void> => {
         });
       }
 
-      listen(resolvedProjectPath, {
+      await listen(resolvedProjectPath, {
         port: options.port,
         serveDashboard: true,
         initialize: true,
+        watch: true,
       });
     });
 

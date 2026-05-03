@@ -198,6 +198,10 @@ export const createBobRouter = (projectPath: string) => {
         const decisions = await reader.readDecisions();
         const changelog = await reader.readChangelog();
         const journey = await reader.readJourney();
+        const media = await reader.readMedia();
+        const commitEntries = journey.filter((entry) =>
+          entry.title.toLowerCase().startsWith("commit:"),
+        );
 
         res.json({
           success: true,
@@ -213,7 +217,8 @@ export const createBobRouter = (projectPath: string) => {
               decisions: decisions.length,
               changes: changelog.length,
               journeyEntries: journey.length,
-              media: (await reader.readMedia()).length,
+              commits: commitEntries.length,
+              media: media.length,
             },
           },
         });

@@ -22,6 +22,7 @@ type BobStatusResponse = {
       decisions?: number;
       changes?: number;
       journeyEntries?: number;
+      commits?: number;
       media?: number;
     };
     repositoryPath?: string;
@@ -118,7 +119,7 @@ class ApiService {
         frameworks: data.frameworks || [],
         stats: {
           captures: data.stats?.journeyEntries || fallbackProject.stats.captures,
-          commits: fallbackProject.stats.commits,
+          commits: data.stats?.commits || 0,
           decisions: data.stats?.decisions || 0,
           changes: data.stats?.changes || 0,
           media: data.stats?.media || 0,
