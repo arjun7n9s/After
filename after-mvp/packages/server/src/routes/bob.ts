@@ -15,7 +15,7 @@ import {
   ChangelogGenerator,
   JourneyGenerator,
 } from "@after/outputs";
-import { StoryboardGenerator, VideoRenderPlanner } from "@after/video";
+import { StoryboardGenerator, VideoRenderPlanner, renderDemoVideo } from "@after/video";
 import type { StoryboardTone } from "@after/video";
 
 export const createBobRouter = (projectPath: string) => {
@@ -443,7 +443,7 @@ export const createBobRouter = (projectPath: string) => {
 
   /**
    * POST /api/bob/video/render
-   * Prepare demo video render artifacts from Project Brain
+   * Render a demo video and supporting artifacts from Project Brain
    */
   router.post("/video/render", async (req, res) => {
     try {
@@ -461,18 +461,21 @@ export const createBobRouter = (projectPath: string) => {
         width: typeof req.body?.width === "number" ? req.body.width : undefined,
         height: typeof req.body?.height === "number" ? req.body.height : undefined,
       });
+      const renderedVideo = await renderDemoVideo(storyboard, renderPlan);
+
       res.json({
         success: true,
-        message: "Video render artifacts prepared",
+        message: "Video rendered",
         data: {
           storyboard,
           renderPlan,
+          renderedVideo,
         },
       });
     } catch (error) {
       res.status(500).json({
         success: false,
-        message: "Failed to prepare video render artifacts",
+        message: "Failed to render video",
         error: error instanceof Error ? error.message : String(error),
       });
     }
