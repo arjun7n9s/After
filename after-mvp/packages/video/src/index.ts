@@ -25,6 +25,7 @@ export {
   getSceneStartSeconds,
   renderScript,
 } from "./render-plan";
+export { renderDemoVideo } from "./render-video";
 export type {
   DemoStoryboard,
   StoryboardOptions,
@@ -38,5 +39,6 @@ export type {
   VideoRenderPlan,
   VideoRenderPlanOptions,
 } from "./render-plan";
+export type { DemoVideoRenderResult } from "./render-video";
 export { DemoComposition, StoryboardSceneView } from "./remotion-scenes";
 export type { DemoCompositionProps } from "./remotion-scenes";
