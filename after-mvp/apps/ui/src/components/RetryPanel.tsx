@@ -7,15 +7,31 @@ type RetryPanelProps = {
 
 export function RetryPanel({ message, onRetry }: RetryPanelProps) {
   return (
-    <div className="rounded-md border border-rose-200 bg-rose-50 p-4">
-      <p className="text-sm font-medium text-rose-950">Could not load project data</p>
-      <p className="mt-1 text-sm text-rose-700">{message}</p>
+    <div
+      className="animate-fade-up rounded-2xl p-5"
+      style={{
+        background: "var(--error-bg)",
+        border: "1px solid rgba(162, 59, 47, 0.2)",
+      }}
+    >
+      <p className="text-sm font-semibold" style={{ color: "var(--error)" }}>
+        Could not load project data
+      </p>
+      <p className="mt-1.5 text-sm" style={{ color: "var(--ink-soft)" }}>
+        {message}
+      </p>
       <button
         type="button"
         onClick={onRetry}
-        className="mt-3 inline-flex h-9 items-center gap-2 rounded-md border border-rose-200 bg-white px-3 text-sm font-medium text-rose-900 hover:bg-rose-100"
+        className="btn-primary mt-4"
+        style={{
+          background: "var(--error)",
+          borderColor: "var(--error)",
+          fontSize: "12px",
+          padding: "6px 14px",
+        }}
       >
-        <RotateCcw className="h-4 w-4" aria-hidden="true" />
+        <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
         Retry
       </button>
     </div>

@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { BrainReader, BrainWriter, ChatService } from "@after/core";
+import {
+  BrainReader,
+  BrainWriter,
+  ChatService,
+  loadIBMProConfig,
+  IBMProService,
+} from "@after/core";
 import {
   AbstractGenerator,
   ReadmeGenerator,
@@ -15,6 +21,10 @@ export const createBobRouter = (projectPath: string) => {
   const writer = new BrainWriter(projectPath);
   const chatService = new ChatService(projectPath);
   const renderPlanner = new VideoRenderPlanner();
+
+  // Initialize IBM Pro Mode if configured
+  const ibmProConfig = loadIBMProConfig();
+  const ibmProService = new IBMProService(ibmProConfig, reader);
 
   /**
    * POST /api/bob/narrate
@@ -557,6 +567,250 @@ export const createBobRouter = (projectPath: string) => {
       res.status(500).json({
         success: false,
         message: "Failed to verify brain",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/bob/ibm/status
+   * Get IBM Pro Mode status
+   */
+  router.get("/ibm/status", async (req, res) => {
+    try {
+      const status = ibmProService.getStatus();
+
+      res.json({
+        success: true,
+        message: "IBM Pro Mode status",
+        data: status,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to get IBM Pro status",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * POST /api/bob/ibm/chat
+   * Enhanced chat with watsonx.ai
+   */
+  router.post("/ibm/chat", async (req, res) => {
+    try {
+      const { query } = req.body;
+
+      if (!query || typeof query !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Query is required",
+        });
+      }
+
+      if (!ibmProService.isWatsonxAvailable()) {
+        return res.status(503).json({
+          success: false,
+          message: "Watsonx.ai is not configured",
+        });
+      }
+
+      // Search Project Brain for context
+      const searchResults = await reader.search(query);
+
+      // Use watsonx.ai for enhanced chat
+      const response = await ibmProService.chat(query, searchResults);
+
+      res.json({
+        success: true,
+        message: "Chat response generated with watsonx.ai",
+        data: response,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to process IBM Pro chat",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * POST /api/bob/ibm/chat/stream
+   * Enhanced chat with live server-side progress events.
+   */
+  router.post("/ibm/chat/stream", async (req, res) => {
+    const { query } = req.body;
+
+    if (!query || typeof query !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Query is required",
+      });
+    }
+
+    if (!ibmProService.isWatsonxAvailable()) {
+      return res.status(503).json({
+        success: false,
+        message: "Watsonx.ai is not configured",
+      });
+    }
+
+    const startedAt = Date.now();
+    const sendEvent = (event: {
+      type: "progress" | "final" | "error";
+      id?: string;
+      title?: string;
+      detail?: string;
+      status?: "active" | "complete" | "error";
+      data?: unknown;
+    }) => {
+      res.write(
+        `${JSON.stringify({
+          ...event,
+          elapsedMs: Date.now() - startedAt,
+          timestamp: new Date().toISOString(),
+        })}\n`,
+      );
+    };
+
+    res.setHeader("Content-Type", "application/x-ndjson");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    try {
+      sendEvent({
+        type: "progress",
+        id: "request",
+        title: "Request received",
+        detail: `Question length: ${query.length} characters`,
+        status: "complete",
+      });
+
+      sendEvent({
+        type: "progress",
+        id: "brain-search",
+        title: "Searching Project Brain",
+        detail: "Reading local memory files for relevant context",
+        status: "active",
+      });
+      const searchResults = await reader.search(query);
+      sendEvent({
+        type: "progress",
+        id: "brain-search",
+        title: "Project Brain search complete",
+        detail: `Found ${searchResults.length} matching source${searchResults.length === 1 ? "" : "s"}`,
+        status: "complete",
+      });
+
+      sendEvent({
+        type: "progress",
+        id: "watsonx",
+        title: "Calling Watsonx",
+        detail: `Model: ${ibmProConfig.watsonx?.model ?? "configured watsonx.ai model"}`,
+        status: "active",
+      });
+      const response = await ibmProService.chat(query, searchResults);
+      sendEvent({
+        type: "progress",
+        id: "watsonx",
+        title: "Watsonx response received",
+        detail: `Generated ${response.content.length} characters`,
+        status: "complete",
+      });
+
+      sendEvent({
+        type: "progress",
+        id: "citations",
+        title: "Citations attached",
+        detail: `${response.citations.length} citation${response.citations.length === 1 ? "" : "s"} linked`,
+        status: "complete",
+      });
+
+      sendEvent({
+        type: "final",
+        data: response,
+      });
+      res.end();
+    } catch (error) {
+      sendEvent({
+        type: "error",
+        id: "chat-error",
+        title: "Chat failed",
+        detail: error instanceof Error ? error.message : String(error),
+        status: "error",
+      });
+      res.end();
+    }
+  });
+
+  /**
+   * POST /api/bob/ibm/narration
+   * Generate narration audio with IBM TTS
+   */
+  router.post("/ibm/narration", async (req, res) => {
+    try {
+      const { script, outputPath } = req.body;
+
+      if (!script || typeof script !== "string") {
+        return res.status(400).json({
+          success: false,
+          message: "Script is required",
+        });
+      }
+
+      if (!ibmProService.isTTSAvailable()) {
+        return res.status(503).json({
+          success: false,
+          message: "IBM TTS is not configured",
+        });
+      }
+
+      const audioPath = await ibmProService.generateNarration(
+        script,
+        outputPath || `${projectPath}/outputs/narration.wav`
+      );
+
+      res.json({
+        success: true,
+        message: audioPath ? "Narration generated" : "Narration skipped (TTS not available)",
+        data: { audioPath },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to generate narration",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
+
+  /**
+   * GET /api/bob/ibm/voices
+   * List available TTS voices
+   */
+  router.get("/ibm/voices", async (req, res) => {
+    try {
+      if (!ibmProService.isTTSAvailable()) {
+        return res.status(503).json({
+          success: false,
+          message: "IBM TTS is not configured",
+        });
+      }
+
+      const voices = await ibmProService.listTTSVoices();
+
+      res.json({
+        success: true,
+        message: "TTS voices retrieved",
+        data: { voices },
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to list TTS voices",
         error: error instanceof Error ? error.message : String(error),
       });
     }

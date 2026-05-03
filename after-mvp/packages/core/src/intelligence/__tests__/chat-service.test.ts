@@ -85,13 +85,23 @@ describe("ChatService", () => {
       expect(response.citations.length).toBe(0);
     });
 
-    it("should fallback to local mode when Bob is unavailable", async () => {
+    it("should answer broad capture questions from current Project Brain state", async () => {
       const response = await chatService.chat({
-        query: "test query",
-        mode: "bob", // Request Bob mode
+        query: "what did you capture till now",
+        mode: "local",
       });
 
-      // Should fallback to local since Bob shell is not available in test
+      expect(response.success).toBe(true);
+      expect(response.content).toContain("Project Brain initialized");
+      expect(response.citations.length).toBeGreaterThan(0);
+    });
+
+    it("should fallback to local mode when Bob Shell is unavailable", async () => {
+      const response = await chatService.chat({
+        query: "test query",
+        mode: "bob",
+      });
+
       expect(response.success).toBe(true);
       expect(response.mode).toBe("local");
     });

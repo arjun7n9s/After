@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import { Command } from "commander";
 import { createServer as createHttpServer, type Server } from "node:http";
+import { join, resolve } from "node:path";
 import { WebSocketServer } from "ws";
 
 import { initProject } from "./cli/init";
@@ -22,6 +23,7 @@ export const createServer = (projectPath?: string) => {
 
   // Mount Bob routes if project path is provided
   if (projectPath) {
+    dotenv.config({ path: join(projectPath, ".env"), override: true });
     app.use("/api/bob", createBobRouter(projectPath));
   }
 
@@ -84,7 +86,8 @@ export const runCli = async (argv = process.argv): Promise<void> => {
     .option("-p, --port <port>", "port", process.env.PORT ?? "3000")
     .description("Start the After API server")
     .action((projectPath: string, options: { port: string }) => {
-      const app = createServer(projectPath);
+      const resolvedProjectPath = resolve(projectPath);
+      const app = createServer(resolvedProjectPath);
       const server = createHttpServer(app);
       const port = Number(options.port);
       attachWebSocketServer(server);
@@ -92,7 +95,7 @@ export const runCli = async (argv = process.argv): Promise<void> => {
       server.listen(port, () => {
         console.log(`After API listening on http://localhost:${port}`);
         console.log(`After WebSocket listening on ws://localhost:${port}/ws`);
-        console.log(`Project: ${projectPath}`);
+        console.log(`Project: ${resolvedProjectPath}`);
       });
     });
 

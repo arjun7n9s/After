@@ -41,7 +41,7 @@ export class BobShellAdapter {
   private maxContextLength: number;
 
   constructor(options: BobShellAdapterOptions = {}) {
-    this.shellPath = options.shellPath ?? "bob";
+    this.shellPath = options.shellPath ?? process.env.BOB_SHELL_PATH ?? "bob";
     this.timeout = options.timeout ?? 30000; // 30 seconds
     this.maxContextLength = options.maxContextLength ?? 8000;
   }

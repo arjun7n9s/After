@@ -132,6 +132,18 @@ describe("apiService", () => {
             defaultMode: "bob",
           },
         }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: {
+            enabled: true,
+            watsonx: true,
+            tts: true,
+            cloudant: true,
+            nlu: true,
+          },
+        }),
       );
 
     vi.stubGlobal("fetch", fetchMock);
@@ -152,5 +164,40 @@ describe("apiService", () => {
       bobAvailable: true,
       defaultMode: "bob",
     });
+    await expect(apiService.getIbmStatus()).resolves.toEqual({
+      enabled: true,
+      watsonx: true,
+      tts: true,
+      cloudant: true,
+      nlu: true,
+    });
+  });
+
+  it("sends watsonx chat requests to the IBM route", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        data: {
+          content: "Watsonx answer",
+          citations: [],
+          mode: "watsonx",
+        },
+      }),
+    );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(apiService.chatBrain("What changed?", "watsonx")).resolves.toEqual({
+      content: "Watsonx answer",
+      citations: [],
+      mode: "watsonx",
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/bob/ibm/chat",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ query: "What changed?" }),
+      }),
+    );
   });
 });

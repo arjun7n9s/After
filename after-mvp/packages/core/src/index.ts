@@ -44,4 +44,7 @@ export type { FileWatcherOptions } from "./capture/file-watcher";
 export type { GitScannerOptions } from "./capture/git-scanner";
 export type { CaptureManagerOptions } from "./capture/capture-manager";
 
+// IBM Pro Mode exports
+export * from "./ibm";
+
 // Made with Bob

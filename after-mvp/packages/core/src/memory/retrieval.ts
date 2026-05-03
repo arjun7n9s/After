@@ -93,6 +93,16 @@ export class ProjectBrainRetriever {
         return left.file.localeCompare(right.file);
       });
 
+    if (results.length === 0 && isBroadProjectQuestion(normalizedQuery, terms)) {
+      return documents
+        .map((document) => this.createOverviewResult(document))
+        .sort((left, right) => {
+          if (right.score !== left.score) return right.score - left.score;
+          return left.file.localeCompare(right.file);
+        })
+        .slice(0, options.limit ?? DEFAULT_LIMIT);
+    }
+
     return results.slice(0, options.limit ?? DEFAULT_LIMIT);
   }
 
@@ -176,6 +186,32 @@ export class ProjectBrainRetriever {
       },
     };
   }
+
+  private createOverviewResult(document: RetrievalDocument): SearchResult {
+    const broadOverviewPriority: Record<BrainFileName, number> = {
+      [brainFileNames.overview]: 60,
+      [brainFileNames.journey]: 55,
+      [brainFileNames.changelog]: 50,
+      [brainFileNames.decisions]: 45,
+      [brainFileNames.architecture]: 40,
+      [brainFileNames.intent]: 35,
+      [brainFileNames.entities]: 30,
+      [brainFileNames.media]: 25,
+    };
+
+    return {
+      file: document.file,
+      preview: createPreview(document.content, 0),
+      score: broadOverviewPriority[document.file],
+      line: 1,
+      matches: ["project-brain-overview"],
+      citation: {
+        path: document.file,
+        line: 1,
+        label: `${document.file}:1`,
+      },
+    };
+  }
 }
 
 const normalizeText = (value: string): string =>
@@ -191,6 +227,43 @@ const tokenize = (query: string): string[] => {
       seen.add(term);
       return true;
     });
+};
+
+const isBroadProjectQuestion = (
+  normalizedQuery: string,
+  terms: string[],
+): boolean => {
+  const broadTerms = new Set([
+    "brain",
+    "capture",
+    "captured",
+    "captures",
+    "context",
+    "current",
+    "history",
+    "journey",
+    "now",
+    "overview",
+    "project",
+    "recent",
+    "recorded",
+    "snapshot",
+    "summary",
+    "timeline",
+  ]);
+
+  if (terms.some((term) => broadTerms.has(term))) {
+    return true;
+  }
+
+  return [
+    "what did you capture",
+    "what have you captured",
+    "what is captured",
+    "what do you know",
+    "tell me about this project",
+    "what is this project",
+  ].some((phrase) => normalizedQuery.includes(phrase));
 };
 
 const extractTitle = (content: string): string => {

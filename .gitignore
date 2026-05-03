@@ -18,6 +18,9 @@ coverage/
 .next/
 out/
 
+# Local generated Project Brain data
+after-mvp/brain/
+
 # Logs and local system files
 *.log
 npm-debug.log*

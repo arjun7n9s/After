@@ -1,6 +1,6 @@
 import { Moon, RefreshCw, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { StatusIndicator } from "@/components/StatusIndicator";
 import { useAppStore } from "@/stores/app-store";
 
 type HeaderProps = {
@@ -9,23 +9,55 @@ type HeaderProps = {
   onRefresh: () => void;
 };
 
-export function Header({ title, isConnected, onRefresh }: HeaderProps) {
+export function Header({ title, onRefresh }: HeaderProps) {
   const theme = useAppStore((state) => state.theme);
   const setTheme = useAppStore((state) => state.setTheme);
   const nextTheme = theme === "dark" ? "light" : "dark";
+  const [scrolled, setScrolled] = useState(false);
+  const [spinning, setSpinning] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const handleRefresh = () => {
+    setSpinning(true);
+    onRefresh();
+    setTimeout(() => setSpinning(false), 800);
+  };
 
   return (
-    <header className="flex min-h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
+    <header
+      className="sticky top-0 z-30 flex min-h-14 items-center justify-between px-4 transition-all duration-300 sm:px-6"
+      style={{
+        borderBottom: "1px solid transparent",
+        ...(scrolled
+          ? {
+              borderBottomColor: "var(--line)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              background: "rgba(246, 240, 233, 0.88)",
+            }
+          : {
+              background: "transparent",
+            }),
+      }}
+    >
       <div>
-        <h1 className="text-lg font-semibold text-slate-950">{title}</h1>
-        <p className="text-sm text-slate-500">Local-first project capture workspace</p>
+        <h1 className="text-base font-semibold" style={{ color: "var(--ink)" }}>
+          {title}
+        </h1>
       </div>
+
       <div className="flex items-center gap-2">
-        <StatusIndicator isConnected={isConnected} />
+        {/* Theme toggle */}
         <button
           type="button"
           onClick={() => setTheme(nextTheme)}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+          className="pill-btn"
+          style={{ padding: "6px 10px" }}
           aria-label={`Switch to ${nextTheme} mode`}
           title={`Switch to ${nextTheme} mode`}
         >
@@ -35,14 +67,24 @@ export function Header({ title, isConnected, onRefresh }: HeaderProps) {
             <Moon className="h-4 w-4" aria-hidden="true" />
           )}
         </button>
+
+        {/* Refresh */}
         <button
           type="button"
-          onClick={onRefresh}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+          onClick={handleRefresh}
+          className="pill-btn"
+          style={{ padding: "6px 10px" }}
           aria-label="Refresh project data"
           title="Refresh project data"
         >
-          <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          <RefreshCw
+            className="h-4 w-4"
+            style={{
+              transition: "transform 0.8s cubic-bezier(0.22, 1, 0.36, 1)",
+              transform: spinning ? "rotate(360deg)" : "rotate(0deg)",
+            }}
+            aria-hidden="true"
+          />
         </button>
       </div>
     </header>

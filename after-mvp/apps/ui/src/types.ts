@@ -43,7 +43,7 @@ export type SearchResult = {
   };
 };
 
-export type ChatMode = "local" | "bob";
+export type ChatMode = "local" | "watsonx" | "bob";
 
 export type ChatCitation = {
   id: string;
@@ -58,6 +58,15 @@ export type ChatResponse = {
   content: string;
   citations: ChatCitation[];
   mode: ChatMode;
+};
+
+export type ChatProgressEvent = {
+  id: string;
+  title: string;
+  detail?: string;
+  status: "active" | "complete" | "error";
+  elapsedMs?: number;
+  timestamp?: string;
 };
 
 export type ThemeMode = "light" | "dark";

@@ -111,6 +111,7 @@ describe("BobShellAdapter", () => {
 
       expect(available).toBe(false);
     });
+
   });
 });
 

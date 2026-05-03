@@ -1,7 +1,25 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": ["PORT"],
+  "globalEnv": [
+    "PORT",
+    "IBM_PRO_ENABLED",
+    "IBM_WATSONX_API_KEY",
+    "IBM_WATSONX_PROJECT_ID",
+    "IBM_WATSONX_MODEL",
+    "IBM_WATSONX_URL",
+    "IBM_TTS_API_KEY",
+    "IBM_TTS_URL",
+    "IBM_TTS_VOICE",
+    "IBM_CLOUDANT_URL",
+    "IBM_CLOUDANT_API_KEY",
+    "IBM_CLOUDANT_ENABLED",
+    "IBM_CLOUDANT_DATABASE",
+    "IBM_NLU_API_KEY",
+    "IBM_NLU_URL",
+    "IBM_NLU_ENABLED",
+    "BOB_SHELL_PATH"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

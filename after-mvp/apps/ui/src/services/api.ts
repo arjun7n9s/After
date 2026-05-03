@@ -1,5 +1,12 @@
 import { fallbackEvents, fallbackProject } from "@/data/mock-data";
-import type { CaptureEvent, ChatMode, ChatResponse, Project, SearchResult } from "@/types";
+import type {
+  CaptureEvent,
+  ChatMode,
+  ChatProgressEvent,
+  ChatResponse,
+  Project,
+  SearchResult,
+} from "@/types";
 
 type BobStatusResponse = {
   success: boolean;
@@ -35,6 +42,17 @@ type BobChatResponse = {
   error?: string;
 };
 
+type BobIbmStatusResponse = {
+  success: boolean;
+  data?: {
+    enabled?: boolean;
+    watsonx?: boolean;
+    tts?: boolean;
+    cloudant?: boolean;
+    nlu?: boolean;
+  };
+};
+
 type BobChatStatusResponse = {
   success: boolean;
   data?: {
@@ -42,6 +60,11 @@ type BobChatStatusResponse = {
     defaultMode?: ChatMode;
   };
 };
+
+type ChatStreamMessage =
+  | ({ type: "progress" } & ChatProgressEvent)
+  | { type: "final"; data: ChatResponse }
+  | ({ type: "error" } & Partial<ChatProgressEvent>);
 
 const apiBaseUrl = import.meta.env.VITE_AFTER_API_BASE_URL || "";
 
@@ -119,16 +142,29 @@ class ApiService {
     return payload.data?.content || "";
   }
 
-  async chatBrain(query: string, mode: ChatMode = "local"): Promise<ChatResponse> {
+  async chatBrain(
+    query: string,
+    mode: ChatMode = "local",
+    onProgress?: (event: ChatProgressEvent) => void,
+  ): Promise<ChatResponse> {
     if (!query.trim()) {
       return { content: "", citations: [], mode };
     }
 
     try {
-      const response = await this.request("/api/bob/chat", {
+      if (mode === "watsonx" && onProgress) {
+        return await this.streamWatsonxChat(query, onProgress);
+      }
+
+      const path = mode === "watsonx" ? "/api/bob/ibm/chat" : "/api/bob/chat";
+      const body =
+        mode === "watsonx"
+          ? { query }
+          : { query, mode, maxResults: 5 };
+      const response = await this.request(path, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, mode, maxResults: 5 }),
+        body: JSON.stringify(body),
       });
       if (!response.ok) throw new Error(`Chat request failed: ${response.status}`);
 
@@ -138,7 +174,11 @@ class ApiService {
       }
 
       return payload.data;
-    } catch {
+    } catch (error) {
+      if (mode === "watsonx") {
+        throw error;
+      }
+
       const results = await this.searchBrain(query);
       const citations = results.map((result, index) => ({
         id: `cite-${index + 1}`,
@@ -176,8 +216,103 @@ class ApiService {
     }
   }
 
+  async getIbmStatus(): Promise<{
+    enabled: boolean;
+    watsonx: boolean;
+    tts: boolean;
+    cloudant: boolean;
+    nlu: boolean;
+  }> {
+    try {
+      const response = await this.request("/api/bob/ibm/status");
+      if (!response.ok) throw new Error(`IBM status failed: ${response.status}`);
+      const payload = (await response.json()) as BobIbmStatusResponse;
+      const data = payload.data;
+
+      return {
+        enabled: Boolean(data?.enabled),
+        watsonx: Boolean(data?.watsonx),
+        tts: Boolean(data?.tts),
+        cloudant: Boolean(data?.cloudant),
+        nlu: Boolean(data?.nlu),
+      };
+    } catch {
+      return {
+        enabled: false,
+        watsonx: false,
+        tts: false,
+        cloudant: false,
+        nlu: false,
+      };
+    }
+  }
+
   private async request(path: string, init?: RequestInit): Promise<Response> {
     return fetch(`${apiBaseUrl}${path}`, init);
+  }
+
+  private async streamWatsonxChat(
+    query: string,
+    onProgress: (event: ChatProgressEvent) => void,
+  ): Promise<ChatResponse> {
+    const response = await this.request("/api/bob/ibm/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!response.ok) throw new Error(`Watsonx stream failed: ${response.status}`);
+    if (!response.body) throw new Error("Watsonx stream response has no body");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalResponse: ChatResponse | undefined;
+
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value, { stream: !done });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        handleStreamLine(line);
+      }
+
+      if (done) break;
+    }
+
+    handleStreamLine(buffer);
+
+    if (!finalResponse) {
+      throw new Error("Watsonx stream ended before a response was returned");
+    }
+
+    return finalResponse;
+
+    function handleStreamLine(line: string) {
+      if (!line.trim()) return;
+      const message = JSON.parse(line) as ChatStreamMessage;
+
+      if (message.type === "progress") {
+        onProgress({
+          id: message.id,
+          title: message.title,
+          detail: message.detail,
+          status: message.status,
+          elapsedMs: message.elapsedMs,
+          timestamp: message.timestamp,
+        });
+      }
+
+      if (message.type === "error") {
+        throw new Error(message.detail || message.title || "Watsonx stream failed");
+      }
+
+      if (message.type === "final") {
+        finalResponse = message.data;
+      }
+    }
   }
 }
 

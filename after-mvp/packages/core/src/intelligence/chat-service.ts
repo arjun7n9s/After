@@ -1,4 +1,5 @@
 import { ProjectBrainRetriever, type SearchResult } from "../memory/retrieval";
+import { BrainReader } from "../memory/brain-reader";
 import { BobShellAdapter, type BobContext } from "./bob-shell-adapter";
 import { CitationBuilder, type Citation } from "./citation-builder";
 
@@ -35,6 +36,7 @@ export interface ChatResponse {
  */
 export class ChatService {
   private retriever: ProjectBrainRetriever;
+  private brainReader: BrainReader;
   private bobAdapter: BobShellAdapter;
   private citationBuilder: CitationBuilder;
   private projectPath: string;
@@ -42,6 +44,7 @@ export class ChatService {
   constructor(projectPath: string) {
     this.projectPath = projectPath;
     this.retriever = new ProjectBrainRetriever(projectPath);
+    this.brainReader = new BrainReader(projectPath);
     this.bobAdapter = new BobShellAdapter();
     this.citationBuilder = new CitationBuilder();
   }
@@ -85,12 +88,12 @@ export class ChatService {
         // Fallback to local if Bob fails
         if (!success) {
           mode = "local";
-          content = this.generateLocalResponse(request.query, searchResults);
+          content = await this.generateLocalResponse(request.query, searchResults);
           success = true;
           error = undefined;
         }
       } else {
-        content = this.generateLocalResponse(request.query, searchResults);
+        content = await this.generateLocalResponse(request.query, searchResults);
       }
 
       // Add citations to response
@@ -131,9 +134,13 @@ export class ChatService {
   /**
    * Generate local template-based response
    */
-  private generateLocalResponse(query: string, searchResults: SearchResult[]): string {
+  private async generateLocalResponse(query: string, searchResults: SearchResult[]): Promise<string> {
     if (searchResults.length === 0) {
       return this.generateNoContextResponse(query);
+    }
+
+    if (searchResults.some((result) => result.matches.includes("project-brain-overview"))) {
+      return this.generateProjectBrainOverviewResponse();
     }
 
     // Build response from search results
@@ -148,6 +155,76 @@ export class ChatService {
     }
 
     parts.push("\n\nThis information comes from your project's captured context.");
+
+    return parts.join("\n");
+  }
+
+  private async generateProjectBrainOverviewResponse(): Promise<string> {
+    const parts: string[] = ["Here's what your Project Brain currently has captured:\n"];
+
+    try {
+      const overview = await this.brainReader.readOverview();
+      parts.push(`- Project: ${overview.projectName} (${overview.status}).`);
+      parts.push(
+        overview.summary
+          ? `- Summary: ${overview.summary}`
+          : "- Summary: not filled in yet.",
+      );
+      parts.push(
+        overview.frameworks.length > 0
+          ? `- Frameworks: ${overview.frameworks.join(", ")}.`
+          : "- Frameworks: none recorded yet.",
+      );
+    } catch {
+      parts.push("- Overview: not available yet.");
+    }
+
+    try {
+      const journey = await this.brainReader.readJourney();
+      if (journey.length > 0) {
+        const latest = journey[journey.length - 1]!;
+        parts.push(`- Journey: ${journey.length} entr${journey.length === 1 ? "y" : "ies"} recorded. Latest: ${latest.title} - ${latest.narrative}`);
+      } else {
+        parts.push("- Journey: no entries recorded yet.");
+      }
+    } catch {
+      parts.push("- Journey: not available yet.");
+    }
+
+    try {
+      const changes = await this.brainReader.readChangelog();
+      parts.push(
+        changes.length > 0
+          ? `- Changes: ${changes.length} changelog entr${changes.length === 1 ? "y" : "ies"} recorded.`
+          : "- Changes: no changelog entries recorded yet.",
+      );
+    } catch {
+      parts.push("- Changes: not available yet.");
+    }
+
+    try {
+      const decisions = await this.brainReader.readDecisions();
+      parts.push(
+        decisions.length > 0
+          ? `- Decisions: ${decisions.length} decision${decisions.length === 1 ? "" : "s"} recorded.`
+          : "- Decisions: no decisions recorded yet.",
+      );
+    } catch {
+      parts.push("- Decisions: not available yet.");
+    }
+
+    try {
+      const architecture = await this.brainReader.readArchitecture();
+      parts.push(
+        architecture.overview || architecture.components.length > 0
+          ? `- Architecture: ${architecture.overview || `${architecture.components.length} component${architecture.components.length === 1 ? "" : "s"} recorded`}.`
+          : "- Architecture: not documented yet.",
+      );
+    } catch {
+      parts.push("- Architecture: not available yet.");
+    }
+
+    parts.push("\nSo yes, the system has a Project Brain, but right now it is still sparse. As you capture more snapshots, changes, decisions, and journey entries, answers will become richer.");
 
     return parts.join("\n");
   }

@@ -1,130 +1,219 @@
-import { Search } from "lucide-react";
+import { ChevronDown, FileText, GitCommitHorizontal, ListChecks, Search, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 
 import { useAppStore } from "@/stores/app-store";
 import type { CaptureEventType } from "@/types";
 
-const filters: Array<{ label: string; value: "all" | CaptureEventType }> = [
+type FilterItem = { label: string; value: "all" | CaptureEventType; dot?: string; icon?: LucideIcon };
+
+const filters: FilterItem[] = [
   { label: "All", value: "all" },
-  { label: "Files", value: "file:changed" },
-  { label: "Commits", value: "git:commit" },
-  { label: "Decisions", value: "decision:made" },
-  { label: "Milestones", value: "milestone:reached" },
+  { label: "Files", value: "file:changed", dot: "#c87d42", icon: FileText },
+  { label: "Commits", value: "git:commit", dot: "#1d6a35", icon: GitCommitHorizontal },
+  { label: "Decisions", value: "decision:made", dot: "#7a5e4b", icon: ListChecks },
+  { label: "Milestones", value: "milestone:reached", dot: "#2b180a", icon: Trophy },
 ];
+
+const eventTypeConfig: Record<string, { color: string; bg: string; label: string; Icon: LucideIcon }> = {
+  "file:added": { color: "#c87d42", bg: "rgba(200,125,66,0.08)", label: "File Added", Icon: FileText },
+  "file:changed": { color: "#c87d42", bg: "rgba(200,125,66,0.08)", label: "File Changed", Icon: FileText },
+  "file:deleted": { color: "#a23b2f", bg: "rgba(162,59,47,0.08)", label: "File Deleted", Icon: FileText },
+  "git:commit": { color: "#1d6a35", bg: "rgba(29,106,53,0.08)", label: "Commit", Icon: GitCommitHorizontal },
+  "decision:made": { color: "#7a5e4b", bg: "rgba(122,94,75,0.08)", label: "Decision", Icon: ListChecks },
+  "milestone:reached": { color: "#2b180a", bg: "rgba(43,24,10,0.08)", label: "Milestone", Icon: Trophy },
+};
+
+function relativeTime(timestamp: string): string {
+  const diff = Date.now() - new Date(timestamp).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
 
 export function Timeline() {
   const events = useAppStore((state) => state.events);
-  const selectedEventId = useAppStore((state) => state.selectedEventId);
-  const selectEvent = useAppStore((state) => state.selectEvent);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | CaptureEventType>("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filteredEvents = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    return events.filter((event) => {
-      const matchesFilter =
-        filter === "all" ||
-        event.type === filter ||
-        (filter === "file:changed" && event.type.startsWith("file:"));
-      const matchesQuery =
-        !normalizedQuery ||
-        `${event.title} ${event.summary} ${event.source || ""}`.toLowerCase().includes(normalizedQuery);
-
+    const q = query.trim().toLowerCase();
+    return events.filter((e) => {
+      const matchesFilter = filter === "all" || e.type === filter || (filter === "file:changed" && e.type.startsWith("file:"));
+      const matchesQuery = !q || `${e.title} ${e.summary} ${e.source || ""}`.toLowerCase().includes(q);
       return matchesFilter && matchesQuery;
     });
   }, [events, filter, query]);
 
-  const selectedEvent =
-    events.find((event) => event.id === selectedEventId) || filteredEvents[0] || null;
-
   return (
-    <div className="mx-auto grid max-w-7xl gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="rounded-md border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 p-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm outline-none focus:border-slate-400"
-                placeholder="Search timeline"
-                aria-label="Search timeline"
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {filters.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => setFilter(item.value)}
-                  className={[
-                    "h-9 rounded-md border px-3 text-sm font-medium",
-                    filter === item.value
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-                  ].join(" ")}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
+    <div className="mx-auto max-w-4xl">
+      {/* ── Search + Filters ───────────────────────────────────── */}
+      <div className="animate-fade-up mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative min-w-0 flex-1 sm:max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "var(--ink-muted)" }} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="input-glow h-10 w-full rounded-2xl pl-9 pr-3 text-sm"
+            style={{ background: "rgba(255,252,247,0.8)", border: "1px solid var(--line)", color: "var(--ink)" }}
+            placeholder="Search events…"
+            aria-label="Search timeline"
+          />
         </div>
-
-        <div className="divide-y divide-slate-100">
-          {filteredEvents.map((event) => (
+        <div className="flex flex-wrap gap-1.5">
+          {filters.map((item) => (
             <button
-              key={event.id}
+              key={item.value}
               type="button"
-              onClick={() => selectEvent(event.id)}
-              className={[
-                "block w-full px-5 py-4 text-left hover:bg-slate-50",
-                selectedEvent?.id === event.id ? "bg-slate-50" : "",
-              ].join(" ")}
+              onClick={() => setFilter(item.value)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold uppercase tracking-wider transition-all duration-200"
+              style={
+                filter === item.value
+                  ? {
+                      background: "linear-gradient(140deg, var(--accent-light), var(--accent-dark))",
+                      color: "#fff7ef",
+                      border: "1px solid var(--accent-dark)",
+                      boxShadow: "0 2px 8px rgba(200,125,66,0.2)",
+                    }
+                  : {
+                      background: "rgba(255,252,247,0.7)",
+                      color: "var(--ink-soft)",
+                      border: "1px solid var(--line)",
+                    }
+              }
             >
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-sm font-medium text-slate-950">{event.title}</h2>
-                <time className="text-xs text-slate-500" dateTime={event.timestamp}>
-                  {new Date(event.timestamp).toLocaleString()}
-                </time>
-              </div>
-              <p className="mt-1 text-sm text-slate-600">{event.summary}</p>
-              {event.source ? <p className="mt-2 text-xs text-slate-500">{event.source}</p> : null}
+              {item.dot && (
+                <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: filter === item.value ? "#fff7ef" : item.dot }} />
+              )}
+              {item.label}
             </button>
           ))}
-          {filteredEvents.length === 0 ? (
-            <div className="px-5 py-10 text-center text-sm text-slate-500">
-              No timeline events match the current filters.
-            </div>
-          ) : null}
         </div>
-      </section>
+      </div>
 
-      <aside className="rounded-md border border-slate-200 bg-white p-5">
-        <h2 className="text-base font-semibold text-slate-950">Event Detail</h2>
-        {selectedEvent ? (
-          <div className="mt-4 space-y-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Type</p>
-              <p className="mt-1 text-sm text-slate-950">{selectedEvent.type}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Summary</p>
-              <p className="mt-1 text-sm leading-6 text-slate-700">{selectedEvent.summary}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Source</p>
-              <p className="mt-1 break-words text-sm text-slate-950">
-                {selectedEvent.source || "Not linked"}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-slate-500">Select an event to inspect it.</p>
+      {/* ── Timeline ───────────────────────────────────────────── */}
+      <div className="animate-fade-up relative" style={{ animationDelay: "100ms" }}>
+        {/* Vertical gradient line */}
+        {filteredEvents.length > 0 && (
+          <div
+            className="pointer-events-none absolute left-[15px] top-0 w-px"
+            style={{
+              height: "100%",
+              background: "linear-gradient(to bottom, var(--accent) 0%, var(--line) 30%, var(--line) 70%, transparent 100%)",
+            }}
+          />
         )}
-      </aside>
+
+        {filteredEvents.map((event) => {
+          const config = eventTypeConfig[event.type] || { color: "var(--ink-muted)", bg: "rgba(154,128,110,0.08)", label: event.type, Icon: FileText };
+          const TypeIcon = config.Icon;
+          const isExpanded = expandedId === event.id;
+
+          return (
+            <div key={event.id} className="relative flex gap-0" style={{ paddingLeft: 0 }}>
+              {/* Bullet */}
+              <div className="relative z-10 flex w-8 shrink-0 items-start justify-center" style={{ paddingTop: 22 }}>
+                <div
+                  className="flex h-[14px] w-[14px] items-center justify-center rounded-full"
+                  style={{
+                    background: config.color,
+                    boxShadow: `0 0 10px ${config.color}30`,
+                    border: "2px solid var(--cream-0)",
+                  }}
+                />
+              </div>
+
+              {/* Card */}
+              <button
+                type="button"
+                onClick={() => setExpandedId(isExpanded ? null : event.id)}
+                className="tilt-card mb-3 flex-1 rounded-2xl p-4 text-left transition-all duration-300"
+                style={{
+                  background: isExpanded ? "rgba(255,252,247,0.98)" : "rgba(255,252,247,0.7)",
+                  border: isExpanded ? "1px solid var(--accent)" : "1px solid var(--line)",
+                  boxShadow: isExpanded
+                    ? "0 12px 32px rgba(43,24,10,0.08), 0 0 0 1px rgba(200,125,66,0.1)"
+                    : "0 2px 8px rgba(50,25,10,0.03)",
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-1 flex-col">
+                    {/* Type badge + time */}
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                        style={{ background: config.bg, color: config.color }}
+                      >
+                        <TypeIcon className="h-2.5 w-2.5" />
+                        {config.label}
+                      </span>
+                      <time className="text-[10px] font-semibold tabular-nums" style={{ color: "var(--ink-muted)" }} dateTime={event.timestamp}>
+                        {relativeTime(event.timestamp)}
+                      </time>
+                    </div>
+
+                    {/* Title */}
+                    <h2 className="text-[14px] font-bold" style={{ color: "var(--ink)", letterSpacing: "-0.02em" }}>
+                      {event.title}
+                    </h2>
+                    <p className="mt-0.5 text-[12px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>
+                      {event.summary}
+                    </p>
+
+                    {/* Expanded detail */}
+                    <div
+                      className="overflow-hidden transition-all duration-300"
+                      style={{
+                        maxHeight: isExpanded ? 200 : 0,
+                        opacity: isExpanded ? 1 : 0,
+                        marginTop: isExpanded ? 12 : 0,
+                      }}
+                    >
+                      <div className="rounded-xl p-3" style={{ background: config.bg, border: `1px solid ${config.color}18` }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: config.color }}>
+                          Source
+                        </p>
+                        <p className="mt-1 break-words font-mono text-[11px]" style={{ color: "var(--ink)" }}>
+                          {event.source || "Not linked"}
+                        </p>
+                        <p className="mt-3 text-[10px] font-bold uppercase tracking-wider" style={{ color: config.color }}>
+                          Timestamp
+                        </p>
+                        <p className="mt-1 font-mono text-[11px]" style={{ color: "var(--ink)" }}>
+                          {new Date(event.timestamp).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expand indicator */}
+                  <ChevronDown
+                    className="mt-1 h-4 w-4 shrink-0 transition-transform duration-300"
+                    style={{
+                      color: "var(--ink-muted)",
+                      transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                    }}
+                    aria-hidden="true"
+                  />
+                </div>
+              </button>
+            </div>
+          );
+        })}
+
+        {filteredEvents.length === 0 && (
+          <div className="py-16 text-center">
+            <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
+              No timeline events match the current filters.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

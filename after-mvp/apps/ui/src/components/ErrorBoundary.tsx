@@ -26,7 +26,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.message) {
       return (
-        <div className="min-h-screen bg-slate-50 p-6">
+        <div
+          className="min-h-screen p-6"
+          style={{ background: "linear-gradient(180deg, var(--cream-1), var(--cream-0))" }}
+        >
           <RetryPanel
             message={this.state.message}
             onRetry={() => this.setState({ message: null })}

@@ -80,6 +80,19 @@ describe("Project Brain retrieval", () => {
     await expect(retriever.search("   ")).resolves.toEqual([]);
   });
 
+  it("returns Project Brain overview context for broad capture questions", async () => {
+    const writer = new BrainWriter(projectPath);
+    await writer.initialize("Retrieval Test");
+
+    const results = await new ProjectBrainRetriever(projectPath).search(
+      "what did you capture till now",
+    );
+
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.map((result) => result.file)).toContain("journey.md");
+    expect(results[0]?.matches).toContain("project-brain-overview");
+  });
+
   it("skips missing brain files instead of failing the whole search", async () => {
     const results = await new ProjectBrainRetriever(projectPath).search("anything");
 
